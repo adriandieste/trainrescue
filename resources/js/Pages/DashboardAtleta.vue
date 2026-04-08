@@ -4,14 +4,14 @@ import { Head } from '@inertiajs/vue3';
 </script>
 
 <template>
-    <Head title="Dashboard Entrenador" />
+    <Head title="Dashboard Atleta" />
 
     <AuthenticatedLayout>
         <template #header>
             <h2
                 class="text-xl font-semibold leading-tight text-gray-800"
             >
-                Dashboard Entrenador
+                Dashboard Atleta
             </h2>
         </template>
 
@@ -21,11 +21,12 @@ import { Head } from '@inertiajs/vue3';
                     class="overflow-hidden bg-white shadow-sm sm:rounded-lg"
                 >
                     <div class="p-6 text-gray-900">
-                        <h1 class="text-2xl font-bold mb-4">Bienvenido, Entrenador</h1>
-                        <p>Aquí puedes gestionar entrenamientos, crear sesiones y superviar a tus atletas.</p>
+                        <h1 class="text-2xl font-bold mb-4">Bienvenido, Atleta</h1>
+                        <p>Aquí puedes ver tus entrenamientos, tu progreso y tus sesiones asignadas.</p>
                     </div>
                 </div>
             </div>
         </div>
     </AuthenticatedLayout>
 </template>
+
