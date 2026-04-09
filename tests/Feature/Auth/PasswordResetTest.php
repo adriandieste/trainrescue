@@ -12,6 +12,8 @@ class PasswordResetTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const RESET_LINK_STATUS_MESSAGE = 'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.';
+
     public function test_reset_password_link_screen_can_be_rendered(): void
     {
         $response = $this->get('/forgot-password');
@@ -25,9 +27,33 @@ class PasswordResetTest extends TestCase
 
         $user = User::factory()->create();
 
-        $this->post('/forgot-password', ['email' => $user->email]);
+        $response = $this->post('/forgot-password', ['email' => $user->email]);
+
+        $response->assertSessionHas('status', self::RESET_LINK_STATUS_MESSAGE);
 
         Notification::assertSentTo($user, ResetPassword::class);
+    }
+
+    public function test_reset_password_link_request_for_unknown_email_returns_generic_message(): void
+    {
+        Notification::fake();
+
+        $response = $this->post('/forgot-password', ['email' => 'noexiste@example.com']);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', self::RESET_LINK_STATUS_MESSAGE);
+
+        Notification::assertNothingSent();
+    }
+
+    public function test_reset_password_link_request_requires_a_valid_email_format(): void
+    {
+        $response = $this->from('/forgot-password')->post('/forgot-password', ['email' => 'correo-invalido']);
+
+        $response
+            ->assertRedirect('/forgot-password')
+            ->assertSessionHasErrors('email');
     }
 
     public function test_reset_password_screen_can_be_rendered(): void

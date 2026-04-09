@@ -1,10 +1,8 @@
 <script setup>
-import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 
 defineProps({
     status: {
@@ -22,47 +20,64 @@ const submit = () => {
 </script>
 
 <template>
-    <GuestLayout>
-        <Head title="Forgot Password" />
+    <div class="min-h-screen flex flex-col justify-center items-center bg-gradient-to-b from-blue-400 to-blue-600 py-20">
+        <Head title="Recuperar contraseña" />
 
-        <div class="mb-4 text-sm text-gray-600">
-            Forgot your password? No problem. Just let us know your email
-            address and we will email you a password reset link that will allow
-            you to choose a new one.
+        <div class="flex flex-col items-center mb-6">
+            <img
+                src="../../../imagenes/logoTrain&Rescue.png"
+                alt="Train & Rescue"
+                class="w-24 h-24 mb-2 rounded-full shadow-md object-contain"
+            />
+            <h1 class="text-3xl font-extrabold text-white">Train & Rescue</h1>
+            <p class="text-white mt-1">Recupera el acceso a tu cuenta</p>
         </div>
 
-        <div
-            v-if="status"
-            class="mb-4 text-sm font-medium text-green-600"
-        >
-            {{ status }}
-        </div>
+        <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 mx-2">
+            <form @submit.prevent="submit">
+                <h2 class="text-xl font-bold text-center mb-1">Olvidé mi contraseña</h2>
+                <p class="text-center text-neutral-500 mb-6">
+                    Introduce tu correo y te enviaremos un enlace para restablecerla.
+                </p>
 
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="email" value="Email" />
+                <div
+                    v-if="status"
+                    class="mb-4 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700"
+                >
+                    {{ status }}
+                </div>
 
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
+                <div class="mb-4">
+                    <InputLabel for="email" value="Email" class="mb-1" />
 
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
+                    <TextInput
+                        id="email"
+                        type="email"
+                        class="w-full rounded-lg border border-neutral-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 px-4 py-3 text-base placeholder-neutral-400"
+                        v-model="form.email"
+                        required
+                        autofocus
+                        autocomplete="username"
+                        placeholder="ejemplo@email.com"
+                    />
 
-            <div class="mt-4 flex items-center justify-end">
-                <PrimaryButton
-                    :class="{ 'opacity-25': form.processing }"
+                    <InputError class="mt-2" :message="form.errors.email" />
+                </div>
+
+                <button
+                    type="submit"
+                    class="w-full bg-red-500 text-white font-bold py-3 rounded-xl mt-2 shadow-md transition-all hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     :disabled="form.processing"
                 >
-                    Email Password Reset Link
-                </PrimaryButton>
-            </div>
-        </form>
-    </GuestLayout>
+                    Enviar enlace de recuperación
+                </button>
+
+                <div class="mt-6 text-center">
+                    <Link :href="route('login')" class="text-red-500 font-semibold hover:underline">
+                        Volver al inicio de sesión
+                    </Link>
+                </div>
+            </form>
+        </div>
+    </div>
 </template>
