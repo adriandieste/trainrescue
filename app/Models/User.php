@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -43,5 +44,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function club(): BelongsTo
     {
         return $this->belongsTo(\App\Models\Club::class);
+    }
+
+    public function ownedClubs(): HasMany
+    {
+        return $this->hasMany(\App\Models\Club::class, 'admin_user_id');
     }
 }

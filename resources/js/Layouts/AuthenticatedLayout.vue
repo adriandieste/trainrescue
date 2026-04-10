@@ -27,14 +27,14 @@ import { Link } from '@inertiajs/vue3';
                                 Inicio
                             </Link>
 
-                            <span class="flex min-w-[84px] cursor-not-allowed flex-col items-center gap-1 text-gray-400">
+                            <span class="flex min-w-[84px] flex-col items-center gap-1 text-gray-400">
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10m-12 9h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v11a2 2 0 002 2z" />
                                 </svg>
                                 Calendario
                             </span>
 
-                            <span class="flex min-w-[84px] cursor-not-allowed flex-col items-center gap-1 text-gray-400">
+                            <span class="flex min-w-[84px] flex-col items-center gap-1 text-gray-400">
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 9h2v6H5zM17 9h2v6h-2zM7 11h10M7 13h10M9 8V6M15 8V6M9 18v-2M15 18v-2" />
                                 </svg>
