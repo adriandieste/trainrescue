@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Club;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -9,6 +10,13 @@ use Tests\TestCase;
 class ProfileTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_guests_are_redirected_when_accessing_profile_page(): void
+    {
+        $response = $this->get('/profile');
+
+        $response->assertRedirect('/login');
+    }
 
     public function test_profile_page_is_displayed(): void
     {
@@ -41,6 +49,63 @@ class ProfileTest extends TestCase
         $this->assertSame('Test User', $user->name);
         $this->assertSame('test@example.com', $user->email);
         $this->assertNull($user->email_verified_at);
+    }
+
+    public function test_profile_view_displays_name_email_role_and_club_for_authenticated_user(): void
+    {
+        $club = Club::create(['name' => 'Club de Salvamento Madrid']);
+
+        $user = User::factory()->create([
+            'name' => 'Adrian Prueba',
+            'email' => 'adrian@example.com',
+            'rol' => 'entrenador',
+            'club_id' => $club->id,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->get('/profile');
+
+        $response
+            ->assertOk()
+            ->assertSee('Adrian Prueba')
+            ->assertSee('adrian@example.com')
+            ->assertSee('entrenador')
+            ->assertSee('Club de Salvamento Madrid');
+    }
+
+    public function test_profile_view_does_not_expose_other_user_data(): void
+    {
+        $clubA = Club::create(['name' => 'Club A']);
+        $clubB = Club::create(['name' => 'Club B']);
+
+        $owner = User::factory()->create([
+            'name' => 'Usuario Propio',
+            'email' => 'propio@example.com',
+            'rol' => 'atleta',
+            'club_id' => $clubA->id,
+        ]);
+
+        $other = User::factory()->create([
+            'name' => 'Usuario Ajeno',
+            'email' => 'ajeno@example.com',
+            'rol' => 'entrenador',
+            'club_id' => $clubB->id,
+        ]);
+
+        $response = $this
+            ->actingAs($owner)
+            ->get('/profile');
+
+        $response
+            ->assertOk()
+            ->assertSee('Usuario Propio')
+            ->assertSee('propio@example.com')
+            ->assertSee('atleta')
+            ->assertSee('Club A')
+            ->assertDontSee($other->name)
+            ->assertDontSee($other->email)
+            ->assertDontSee('Club B');
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged(): void
