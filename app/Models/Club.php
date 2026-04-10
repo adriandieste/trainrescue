@@ -4,15 +4,32 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
-#[Fillable(['name'])]
+#[Fillable(['name', 'description', 'logo_path', 'admin_user_id'])]
 class Club extends Model
 {
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($club) {
+            if (!$club->invitation_code) {
+                $club->invitation_code = Str::uuid()->toString();
+            }
+        });
+    }
 
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function admin(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'admin_user_id');
     }
 }
 
