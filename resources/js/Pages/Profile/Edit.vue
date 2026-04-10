@@ -4,7 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import DeleteUserForm from './Partials/DeleteUserForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 
 const props = defineProps({
     mustVerifyEmail: {
@@ -24,6 +24,18 @@ const isEntrenador = computed(() => props.userProfile.rol === 'entrenador');
 const darkModeEnabled = ref(false);
 const notificationsEnabled = ref(true);
 
+// Avatar reactivo: se actualiza cuando Inertia actualiza los shared props tras guardar [CA-4]
+const authUser = computed(() => usePage().props.auth.user);
+const avatarUrl = computed(() => authUser.value.avatar ? `/storage/${authUser.value.avatar}` : null);
+const userInitials = computed(() =>
+    authUser.value.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+);
+
 const goToSetting = (id) => {
     const section = document.getElementById(id);
     if (section) {
@@ -40,7 +52,16 @@ const goToSetting = (id) => {
             <div class="bg-white p-3 ">
                 <div class="w-full max-w-6xl mx-auto  bg-white p-6 ">
                     <div class="flex flex-col items-center text-center">
-                        <div class="mb-4 h-20 w-20 rounded-full border-4 border-neutral-200 bg-neutral-100" />
+                        <!-- Avatar reactivo: muestra foto o iniciales [CA-4] -->
+                        <div class="mb-4 h-20 w-20 shrink-0 overflow-hidden rounded-full border-4 border-neutral-200 bg-indigo-100 flex items-center justify-center text-indigo-600 font-semibold text-2xl">
+                            <img
+                                v-if="avatarUrl"
+                                :src="avatarUrl"
+                                :alt="authUser.name"
+                                class="h-full w-full object-cover"
+                            />
+                            <span v-else>{{ userInitials }}</span>
+                        </div>
                         <h3 class="text-3xl font-bold text-neutral-900">{{ userProfile.name }}</h3>
                         <p class="mt-1 text-lg text-neutral-600">{{ userProfile.email }}</p>
                     </div>
