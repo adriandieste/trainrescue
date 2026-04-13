@@ -36,6 +36,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/clubs', [ClubController::class, 'store'])->name('clubs.store');
         Route::get('/clubs/{club}/edit', [ClubController::class, 'edit'])->name('clubs.edit');
         Route::patch('/clubs/{club}', [ClubController::class, 'update'])->name('clubs.update');
+        Route::delete('/clubs/{club}', [ClubController::class, 'destroy'])->name('clubs.destroy');
 
         Route::get('/clubs/available', [ClubController::class, 'getAvailableClubs'])->name('clubs.available');
         Route::post('/clubs/join-request', [ClubController::class, 'joinRequest'])->name('clubs.join-request');

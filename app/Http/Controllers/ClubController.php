@@ -7,10 +7,14 @@ use App\Http\Requests\JoinClubRequest;
 use App\Http\Requests\UpdateClubRequest;
 use App\Models\Club;
 use App\Models\ClubJoinRequest;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -121,7 +125,6 @@ class ClubController extends Controller
             if ($existingRequest->status === 'accepted') {
                 return back()->with('error', 'Ya eres miembro de este club.');
             }
-            // Solicitud rechazada: reutilizamos el registro actualizandolo a pending
             $existingRequest->update([
                 'status'  => 'pending',
                 'message' => $validated['message'] ?? null,
@@ -203,12 +206,17 @@ class ClubController extends Controller
 
         $club = $joinRequest->club()->with('admin')->first();
 
+        if (! $club instanceof Club) {
+            abort(404, 'No se encontró el club asociado a la solicitud.');
+        }
+
         DB::transaction(function () use ($joinRequest) {
             $joinRequest->update(['status' => 'accepted']);
             $joinRequest->user->update(['club_id' => $joinRequest->club_id]);
         });
 
-        $joinRequest->user->notify(new \App\Notifications\ClubWelcomeNotification($club));
+        $clubForNotification = $club;
+        $joinRequest->user->notify(new \App\Notifications\ClubWelcomeNotification($clubForNotification));
 
         $msg = '¡Solicitud aceptada! ' . $joinRequest->user->name . ' ahora es miembro del club.';
         return auth()->check()
@@ -253,6 +261,35 @@ class ClubController extends Controller
         }
     }
 
+
+    /**
+     * Disuelve el club: desvincula usuarios, elimina el logo y borra el registro.
+     */
+    public function destroy(Request $request, Club $club): RedirectResponse
+    {
+        Gate::authorize('delete', $club);
+
+        $request->validate([
+            'confirm_name' => ['required', 'string', Rule::in([$club->name])],
+        ], [
+            'confirm_name.in' => 'Debes escribir el nombre exacto del club para confirmar.',
+        ]);
+
+        $logoPath = $club->logo_path;
+
+        if ($logoPath) {
+            Storage::disk('public')->delete($logoPath);
+        }
+
+        DB::transaction(function () use ($club) {
+            User::where('club_id', $club->id)->update(['club_id' => null]);
+            $club->joinRequests()->delete();
+            $club->delete();
+        });
+
+        return redirect()->route('dashboard')
+            ->with('success', 'El club ha sido disuelto correctamente. Los atletas han quedado desvinculados.');
+    }
     /**
      * Verifica que el usuario autenticado puede administrar el club indicado.
      */

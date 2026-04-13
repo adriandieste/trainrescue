@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Club;
+use App\Policies\ClubPolicy;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -22,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(Club::class, ClubPolicy::class);
+
         Vite::prefetch(concurrency: 3);
 
         ResetPassword::toMailUsing(function (object $notifiable, string $token) {
