@@ -7,6 +7,9 @@ const page = usePage();
 const user = computed(() => page.props.auth.user);
 const flash = computed(() => page.props.flash ?? {});
 const pendingRequestsCount = computed(() => page.props.pendingRequestsCount ?? 0);
+const currentClub = computed(() => user.value?.club ?? null);
+const canManageClub = computed(() => currentClub.value?.admin_user_id === user.value?.id);
+const currentClubLogoUrl = computed(() => currentClub.value?.logo_path ? `/storage/${currentClub.value.logo_path}` : null);
 
 const showClubOptions = computed(() => !user.value.club_id);
 
@@ -77,7 +80,33 @@ function submitJoinRequest() {
                     <p class="text-sm font-medium">{{ flash.error }}</p>
                 </div>
 
-                <div v-if="user.club_id && pendingRequestsCount > 0" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                <div v-if="currentClub" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                    <div class="flex flex-col gap-6 p-6 md:flex-row md:items-start md:justify-between">
+                        <div class="flex items-start gap-4">
+                            <div v-if="currentClubLogoUrl" class="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white">
+                                <img :src="currentClubLogoUrl" :alt="currentClub.name" class="h-full w-full object-cover">
+                            </div>
+
+                            <div>
+                                <p class="text-sm font-medium uppercase tracking-wide text-blue-600">Tu club</p>
+                                <h3 class="mt-1 text-xl font-semibold text-gray-900">{{ currentClub.name }}</h3>
+                                <p class="mt-2 text-sm text-gray-600">
+                                    {{ currentClub.description || 'Aún no has añadido una descripción para tu club.' }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <Link
+                            v-if="canManageClub"
+                            :href="route('clubs.edit', { club: currentClub.id })"
+                            class="inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
+                        >
+                            Editar club
+                        </Link>
+                    </div>
+                </div>
+
+                <div v-if="canManageClub && pendingRequestsCount > 0" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                     <div class="flex items-center justify-between p-6">
                         <div>
                             <h3 class="text-base font-semibold text-gray-900">Solicitudes de union pendientes</h3>
@@ -110,8 +139,8 @@ function submitJoinRequest() {
                                 ]"
                                 @click="activeTab = 'create'"
                             >
-                                <div class="font-semibold text-gray-900">Crear Club</div>
-                                <div class="text-sm text-gray-600">Registra tu propio club</div>
+                                <span class="block font-semibold text-gray-900">Crear Club</span>
+                                <span class="block text-sm text-gray-600">Registra tu propio club</span>
                             </button>
 
                             <button
@@ -121,8 +150,8 @@ function submitJoinRequest() {
                                 ]"
                                 @click="activeTab = 'join'"
                             >
-                                <div class="font-semibold text-gray-900">Unirme a un Club</div>
-                                <div class="text-sm text-gray-600">Solicita acceso a un club</div>
+                                <span class="block font-semibold text-gray-900">Unirme a un Club</span>
+                                <span class="block text-sm text-gray-600">Solicita acceso a un club</span>
                             </button>
                         </div>
 
@@ -179,18 +208,6 @@ function submitJoinRequest() {
 
                             <div v-if="form.errors.club_id" class="text-sm text-red-600">{{ form.errors.club_id }}</div>
                         </div>
-                    </div>
-                </div>
-
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                    <div class="p-6 text-gray-900">
-                        <h1 class="mb-4 text-2xl font-bold">Bienvenido, {{ user.name }}</h1>
-                        <p v-if="user.club_id" class="text-gray-600">
-                            Aqui puedes gestionar entrenamientos, crear sesiones y supervisar a tus atletas.
-                        </p>
-                        <p v-else class="text-gray-600">
-                            Completa la configuracion de tu club para comenzar.
-                        </p>
                     </div>
                 </div>
             </div>

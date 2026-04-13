@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreClubRequest;
 use App\Http\Requests\JoinClubRequest;
+use App\Http\Requests\UpdateClubRequest;
 use App\Models\Club;
 use App\Models\ClubJoinRequest;
 use Illuminate\Http\RedirectResponse;
@@ -21,6 +22,24 @@ class ClubController extends Controller
     public function create(): Response
     {
         return Inertia::render('Clubs/Create');
+    }
+
+    /**
+     * Show the form for editing the specified club.
+     */
+    public function edit(Club $club): Response
+    {
+        $this->authorizeClubAdministration($club);
+
+        return Inertia::render('Clubs/Edit', [
+            'club' => [
+                'id' => $club->id,
+                'name' => $club->name,
+                'description' => $club->description,
+                'logo_path' => $club->logo_path,
+                'logo_url' => $club->logo_path ? asset('storage/' . $club->logo_path) : null,
+            ],
+        ]);
     }
 
     /**
@@ -42,6 +61,29 @@ class ClubController extends Controller
         $request->user()->update(['club_id' => $club->id]);
 
         return redirect()->route('dashboard')->with('success', 'Club creado exitosamente.');
+    }
+
+    /**
+     * Update the specified club in storage.
+     */
+    public function update(UpdateClubRequest $request, Club $club): RedirectResponse
+    {
+        $validated = $request->safe()->only(['name', 'description']);
+        $oldLogoPath = $club->logo_path;
+        $newLogoPath = null;
+
+        if ($request->hasFile('logo')) {
+            $newLogoPath = $request->file('logo')->store('clubs/logos', 'public');
+            $validated['logo_path'] = $newLogoPath;
+        }
+
+        $club->update($validated);
+
+        if ($newLogoPath && $oldLogoPath) {
+            Storage::disk('public')->delete($oldLogoPath);
+        }
+
+        return redirect()->route('dashboard')->with('success', 'Club actualizado exitosamente.');
     }
 
     /**
@@ -70,18 +112,28 @@ class ClubController extends Controller
 
         $existingRequest = ClubJoinRequest::where('user_id', $request->user()->id)
             ->where('club_id', $validated['club_id'])
-            ->where('status', 'pending')
             ->first();
 
         if ($existingRequest) {
-            return back()->with('error', 'Ya tienes una solicitud pendiente para este club.');
+            if ($existingRequest->status === 'pending') {
+                return back()->with('error', 'Ya tienes una solicitud pendiente para este club.');
+            }
+            if ($existingRequest->status === 'accepted') {
+                return back()->with('error', 'Ya eres miembro de este club.');
+            }
+            // Solicitud rechazada: reutilizamos el registro actualizandolo a pending
+            $existingRequest->update([
+                'status'  => 'pending',
+                'message' => $validated['message'] ?? null,
+            ]);
+            $joinRequest = $existingRequest;
+        } else {
+            $joinRequest = ClubJoinRequest::create([
+                'user_id' => $request->user()->id,
+                'club_id' => $validated['club_id'],
+                'message' => $validated['message'] ?? null,
+            ]);
         }
-
-        $joinRequest = ClubJoinRequest::create([
-            'user_id' => $request->user()->id,
-            'club_id' => $validated['club_id'],
-            'message' => $validated['message'] ?? null,
-        ]);
 
         $club = Club::with('admin')->find($validated['club_id']);
         $admin = $club?->admin;
@@ -149,10 +201,14 @@ class ClubController extends Controller
                 : redirect()->route('login')->with('error', $msg);
         }
 
+        $club = $joinRequest->club()->with('admin')->first();
+
         DB::transaction(function () use ($joinRequest) {
             $joinRequest->update(['status' => 'accepted']);
             $joinRequest->user->update(['club_id' => $joinRequest->club_id]);
         });
+
+        $joinRequest->user->notify(new \App\Notifications\ClubWelcomeNotification($club));
 
         $msg = '¡Solicitud aceptada! ' . $joinRequest->user->name . ' ahora es miembro del club.';
         return auth()->check()
@@ -194,6 +250,18 @@ class ClubController extends Controller
 
         if (! $user || ! $club || $club->admin_user_id !== $user->id) {
             abort(403, 'No tienes permiso para gestionar esta solicitud.');
+        }
+    }
+
+    /**
+     * Verifica que el usuario autenticado puede administrar el club indicado.
+     */
+    private function authorizeClubAdministration(Club $club): void
+    {
+        $user = auth()->user();
+
+        if (! $user || $user->rol !== 'entrenador' || $user->club_id !== $club->id || $club->admin_user_id !== $user->id) {
+            abort(403, 'No tienes permiso para administrar este club.');
         }
     }
 }

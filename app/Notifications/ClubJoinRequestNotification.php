@@ -20,19 +20,17 @@ class ClubJoinRequestNotification extends Notification
     {
         $acceptUrl = URL::signedRoute('clubs.requests.accept', ['joinRequest' => $this->joinRequest->id]);
         $rejectUrl = URL::signedRoute('clubs.requests.reject', ['joinRequest' => $this->joinRequest->id]);
-        $mail = (new MailMessage)
+        return (new MailMessage)
             ->subject('Nueva solicitud para unirse a ' . $this->joinRequest->club->name)
-            ->greeting('Hola, ' . $notifiable->name . '!')
-            ->line('El entrenador **' . $this->joinRequest->user->name . '** ha solicitado unirse a tu club **' . $this->joinRequest->club->name . '**.');
-        if ($this->joinRequest->message) {
-            $mail->line('Mensaje del solicitante: ' . $this->joinRequest->message);
-        }
-        $mail->action('Aceptar Solicitud', $acceptUrl)
-             ->line('Para rechazar la solicitud accede al siguiente enlace:')
-             ->line($rejectUrl)
-             ->line('Los enlaces caducan pasadas 72 horas.')
-             ->salutation('Saludos, el equipo de Train & Rescue.');
-        return $mail;
+            ->view('emails.club-join-request', [
+                'adminName'      => $notifiable->name,
+                'requesterName'  => $this->joinRequest->user->name,
+                'requesterEmail' => $this->joinRequest->user->email,
+                'clubName'       => $this->joinRequest->club->name,
+                'requestMessage' => $this->joinRequest->message,
+                'acceptUrl'      => $acceptUrl,
+                'rejectUrl'      => $rejectUrl,
+            ]);
     }
     public function toArray(object $notifiable): array
     {
