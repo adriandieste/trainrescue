@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Club;
+use App\Models\ClubJoinRequest;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -163,6 +164,97 @@ class ClubManagementTest extends TestCase
         $response
             ->assertSessionHasErrors('name')
             ->assertRedirect(route('clubs.edit', $club));
+    }
+
+    public function test_admin_can_dissolve_club_and_release_members(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create(['rol' => 'entrenador']);
+        $athlete = User::factory()->create(['rol' => 'atleta']);
+
+        Storage::disk('public')->put('clubs/logos/logo-disolver.png', 'logo-content');
+
+        $club = Club::create([
+            'name' => 'Club Disolucion',
+            'description' => 'Club para prueba de borrado',
+            'logo_path' => 'clubs/logos/logo-disolver.png',
+            'admin_user_id' => $admin->id,
+        ]);
+
+        $admin->update(['club_id' => $club->id]);
+        $athlete->update(['club_id' => $club->id]);
+
+        $joinRequest = ClubJoinRequest::create([
+            'user_id' => $athlete->id,
+            'club_id' => $club->id,
+            'status' => 'pending',
+        ]);
+
+        $response = $this
+            ->actingAs($admin)
+            ->delete(route('clubs.destroy', $club), [
+                'confirm_name' => 'Club Disolucion',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('dashboard'));
+
+        $this->assertDatabaseMissing('clubs', ['id' => $club->id]);
+        $this->assertDatabaseHas('users', ['id' => $admin->id, 'club_id' => null]);
+        $this->assertDatabaseHas('users', ['id' => $athlete->id, 'club_id' => null]);
+        $this->assertDatabaseMissing('club_join_requests', ['id' => $joinRequest->id]);
+        Storage::disk('public')->assertMissing('clubs/logos/logo-disolver.png');
+    }
+
+    public function test_non_owner_trainer_cannot_dissolve_club(): void
+    {
+        $owner = User::factory()->create(['rol' => 'entrenador']);
+        $otherTrainer = User::factory()->create(['rol' => 'entrenador']);
+
+        $club = Club::create([
+            'name' => 'Club Protegido Dissolve',
+            'admin_user_id' => $owner->id,
+        ]);
+
+        $owner->update(['club_id' => $club->id]);
+        $otherTrainer->update(['club_id' => $club->id]);
+
+        $response = $this
+            ->actingAs($otherTrainer)
+            ->delete(route('clubs.destroy', $club), [
+                'confirm_name' => 'Club Protegido Dissolve',
+            ]);
+
+        $response->assertForbidden();
+
+        $this->assertDatabaseHas('clubs', ['id' => $club->id]);
+    }
+
+    public function test_dissolving_club_requires_exact_confirmation_name(): void
+    {
+        $owner = User::factory()->create(['rol' => 'entrenador']);
+
+        $club = Club::create([
+            'name' => 'Club Confirmacion',
+            'admin_user_id' => $owner->id,
+        ]);
+
+        $owner->update(['club_id' => $club->id]);
+
+        $response = $this
+            ->actingAs($owner)
+            ->from(route('dashboard'))
+            ->delete(route('clubs.destroy', $club), [
+                'confirm_name' => 'Nombre Incorrecto',
+            ]);
+
+        $response
+            ->assertSessionHasErrors('confirm_name')
+            ->assertRedirect(route('dashboard'));
+
+        $this->assertDatabaseHas('clubs', ['id' => $club->id]);
     }
 }
 

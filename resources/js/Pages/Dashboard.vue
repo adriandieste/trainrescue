@@ -2,6 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, usePage, Link, useForm } from '@inertiajs/vue3';
 import { ref, computed, onMounted } from 'vue';
+import DeleteClubForm from '@/Pages/Clubs/Partials/DeleteClubForm.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
@@ -96,13 +97,16 @@ function submitJoinRequest() {
                             </div>
                         </div>
 
-                        <Link
-                            v-if="canManageClub"
-                            :href="route('clubs.edit', { club: currentClub.id })"
-                            class="inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
-                        >
-                            Editar club
-                        </Link>
+                        <div v-if="canManageClub" class="flex flex-col gap-3 md:items-end">
+                            <Link
+                                :href="route('clubs.edit', { club: currentClub.id })"
+                                class="inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
+                            >
+                                Editar club
+                            </Link>
+
+                            <DeleteClubForm :club="currentClub" />
+                        </div>
                     </div>
                 </div>
 
