@@ -12,11 +12,11 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/dashboard', function () {
-        $user = auth()->user();
+        $user = auth()->user()->load('club');
 
         if ($user->rol === 'entrenador') {
             $pendingCount = 0;
-            if ($user->club_id) {
+            if ($user->club_id && $user->club?->admin_user_id === $user->id) {
                 $pendingCount = \App\Models\ClubJoinRequest::where('club_id', $user->club_id)
                     ->where('status', 'pending')
                     ->count();
@@ -24,15 +24,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
             return Inertia::render('Dashboard', ['pendingRequestsCount' => $pendingCount]);
         }
 
-        return match ($user->rol) {
-            'atleta'  => Inertia::render('DashboardAtleta'),
-            default   => abort(403, 'Acceso denegado: Rol no reconocido.'),
-        };
+        if ($user->rol === 'atleta') {
+            return Inertia::render('DashboardAtleta');
+        }
+
+        abort(403, 'Acceso denegado: Rol no reconocido.');
     })->name('dashboard');
 
     Route::middleware('entrenador')->group(function () {
         Route::get('/clubs/create', [ClubController::class, 'create'])->name('clubs.create');
         Route::post('/clubs', [ClubController::class, 'store'])->name('clubs.store');
+        Route::get('/clubs/{club}/edit', [ClubController::class, 'edit'])->name('clubs.edit');
+        Route::patch('/clubs/{club}', [ClubController::class, 'update'])->name('clubs.update');
 
         Route::get('/clubs/available', [ClubController::class, 'getAvailableClubs'])->name('clubs.available');
         Route::post('/clubs/join-request', [ClubController::class, 'joinRequest'])->name('clubs.join-request');
