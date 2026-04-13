@@ -1,7 +1,7 @@
 @extends('layouts.email')
 @section('content')
 <div style="text-align: center; margin-bottom: 20px;">
-    <img src="{{ config('app.url') }}/logo.png" alt="Train & Rescue" style="width: 120px; height: 120px; border-radius: 50%;">
+    <img src="{{ asset('imagenes/trainrescue-logo-horizontal.png') }}" alt="Logo de Train & Rescue" style="width: 240px; height: auto;">
 </div>
 <h1 style="text-align: center; color: #333; margin: 20px 0;">Nueva solicitud para {{ $clubName }}</h1>
 <p style="font-size: 16px; color: #555; line-height: 1.6;">

@@ -8,14 +8,17 @@ import { Link } from '@inertiajs/vue3';
         <div class="min-h-screen bg-gray-100">
             <nav class="border-b border-gray-100 bg-white">
                 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div class="relative flex h-16 items-center justify-center">
+                    <div class="relative flex h-24 items-center justify-center">
                         <div class="absolute left-0 flex shrink-0 items-center h-full max-h-16">
-                            <Link :href="route('dashboard')" class="h-full flex items-center">
-                                <ApplicationLogo class="block h-9 w-auto fill-current text-gray-800" />
+                            <Link :href="route('dashboard')" class="h-full flex items-center py-1">
+                                <ApplicationLogo
+                                    variant="horizontal"
+                                    class="block h-12 w-auto text-gray-800"
+                                />
                             </Link>
                         </div>
 
-                        <div class="flex items-center gap-10 text-xs font-semibold text-gray-400">
+                        <div class="flex items-center gap-8 text-xs font-semibold text-gray-400">
                             <Link
                                 :href="route('dashboard')"
                                 class="flex min-w-[84px] flex-col items-center gap-1 transition"

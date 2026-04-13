@@ -27,12 +27,13 @@ function handleImageError() {
 </script>
 
 <template>
-    <Head title="Welcome" />
+    <Head title="Inicio" />
     <div class="bg-gray-50 text-black/50 dark:bg-black dark:text-white/50">
         <img
             id="background"
             class="absolute -left-20 top-0 max-w-[877px]"
             src="https://laravel.com/assets/img/welcome/background.svg"
+            alt="Fondo decorativo"
         />
         <div
             class="relative flex min-h-screen flex-col items-center justify-center selection:bg-[#FF2D20] selection:text-white"
@@ -60,7 +61,7 @@ function handleImageError() {
                             :href="route('dashboard')"
                             class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
                         >
-                            Dashboard
+                            Panel
                         </Link>
 
                         <template v-else>
@@ -68,7 +69,7 @@ function handleImageError() {
                                 :href="route('login')"
                                 class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
                             >
-                                Log in
+                                Iniciar sesión
                             </Link>
 
                             <Link
@@ -76,7 +77,7 @@ function handleImageError() {
                                 :href="route('register')"
                                 class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
                             >
-                                Register
+                                Registrarse
                             </Link>
                         </template>
                     </nav>
@@ -140,7 +141,7 @@ function handleImageError() {
                                         <h2
                                             class="text-xl font-semibold text-black dark:text-white"
                                         >
-                                            Documentation
+                                            Documentación
                                         </h2>
 
                                         <p class="mt-4 text-sm/relaxed">
@@ -305,7 +306,7 @@ function handleImageError() {
                                 <h2
                                     class="text-xl font-semibold text-black dark:text-white"
                                 >
-                                    Vibrant Ecosystem
+                                    Ecosistema vibrante
                                 </h2>
 
                                 <p class="mt-4 text-sm/relaxed">

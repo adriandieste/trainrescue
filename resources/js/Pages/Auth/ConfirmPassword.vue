@@ -21,9 +21,9 @@ const submit = () => {
 
         <div class="flex flex-col items-center mb-6">
             <img
-                src="../../../imagenes/logoTrain&Rescue.png"
-                alt="Train & Rescue"
-                class="w-24 h-24 mb-2 rounded-full shadow-md object-contain"
+                src="/imagenes/trainrescue-logo-horizontal.png"
+                alt="Logo de Train & Rescue"
+                class="w-auto h-12 mb-2 object-contain"
             />
             <h1 class="text-3xl font-extrabold text-white">Train & Rescue</h1>
             <p class="text-white mt-1">Salvamento y Socorrismo</p>
