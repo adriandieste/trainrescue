@@ -6,6 +6,7 @@ use App\Http\Requests\StoreClubRequest;
 use App\Http\Requests\JoinClubRequest;
 use App\Http\Requests\UpdateClubRequest;
 use App\Models\Club;
+use App\Models\ClubInvitation;
 use App\Models\ClubJoinRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -189,6 +190,110 @@ class ClubController extends Controller
     }
 
     /**
+     * Listado paginado de miembros y buscador de socorristas para invitar.
+     */
+    public function members(Request $request): Response
+    {
+        $club = $this->getManagedClub();
+        $search = trim((string) $request->query('search', ''));
+
+        $members = $club->users()
+            ->orderBy('name')
+            ->paginate(10)
+            ->through(fn (User $member) => [
+                'id' => $member->id,
+                'name' => $member->name,
+                'email' => $member->email,
+                'avatar_url' => $member->avatar ? asset('storage/' . $member->avatar) : null,
+                'role' => $member->rol,
+                'role_label' => $this->formatRoleLabel($member->rol),
+            ])
+            ->withQueryString();
+
+        $pendingInvitationUserIds = ClubInvitation::where('club_id', $club->id)
+            ->where('status', 'pending')
+            ->pluck('invited_user_id')
+            ->all();
+
+        $pendingJoinRequestUserIds = ClubJoinRequest::where('club_id', $club->id)
+            ->where('status', 'pending')
+            ->pluck('user_id')
+            ->all();
+
+        $searchResults = collect();
+
+        if ($search !== '') {
+            $searchResults = User::query()
+                ->where('rol', 'atleta')
+                ->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                })
+                ->orderBy('name')
+                ->limit(10)
+                ->get()
+                ->map(function (User $candidate) use ($club, $pendingInvitationUserIds, $pendingJoinRequestUserIds) {
+                    $statusLabel = 'Disponible';
+                    $canInvite = true;
+
+                    if ($candidate->club_id === $club->id) {
+                        $statusLabel = 'Ya pertenece a tu club';
+                        $canInvite = false;
+                    } elseif ($candidate->club_id !== null) {
+                        $statusLabel = 'Ya pertenece a otro club';
+                        $canInvite = false;
+                    } elseif (in_array($candidate->id, $pendingInvitationUserIds, true)) {
+                        $statusLabel = 'Invitación pendiente';
+                        $canInvite = false;
+                    } elseif (in_array($candidate->id, $pendingJoinRequestUserIds, true)) {
+                        $statusLabel = 'Solicitud pendiente';
+                        $canInvite = false;
+                    }
+
+                    return [
+                        'id' => $candidate->id,
+                        'name' => $candidate->name,
+                        'email' => $candidate->email,
+                        'avatar_url' => $candidate->avatar ? asset('storage/' . $candidate->avatar) : null,
+                        'can_invite' => $canInvite,
+                        'status_label' => $statusLabel,
+                    ];
+                })
+                ->values();
+        }
+
+        $pendingInvitations = ClubInvitation::with('invitedUser')
+            ->where('club_id', $club->id)
+            ->where('status', 'pending')
+            ->latest()
+            ->get()
+            ->map(fn (ClubInvitation $invitation) => [
+                'id' => $invitation->id,
+                'invited_user' => [
+                    'id' => $invitation->invitedUser->id,
+                    'name' => $invitation->invitedUser->name,
+                    'email' => $invitation->invitedUser->email,
+                    'avatar_url' => $invitation->invitedUser->avatar ? asset('storage/' . $invitation->invitedUser->avatar) : null,
+                ],
+                'status' => $invitation->status,
+                'created_at' => $invitation->created_at->diffForHumans(),
+            ]);
+
+        return Inertia::render('Clubs/Members', [
+            'club' => [
+                'id' => $club->id,
+                'name' => $club->name,
+            ],
+            'filters' => [
+                'search' => $search,
+            ],
+            'searchResults' => $searchResults,
+            'pendingInvitations' => $pendingInvitations,
+            'members' => $members,
+        ]);
+    }
+
+    /**
      * Aceptar solicitud de unión (firmado para enlaces de email + autenticado para UI).
      */
     public function acceptJoinRequest(ClubJoinRequest $joinRequest): RedirectResponse
@@ -288,7 +393,7 @@ class ClubController extends Controller
         });
 
         return redirect()->route('dashboard')
-            ->with('success', 'El club ha sido disuelto correctamente. Los atletas han quedado desvinculados.');
+            ->with('success', 'El club ha sido disuelto correctamente. Los socorristas han quedado desvinculados.');
     }
     /**
      * Verifica que el usuario autenticado puede administrar el club indicado.
@@ -300,5 +405,27 @@ class ClubController extends Controller
         if (! $user || $user->rol !== 'entrenador' || $user->club_id !== $club->id || $club->admin_user_id !== $user->id) {
             abort(403, 'No tienes permiso para administrar este club.');
         }
+    }
+
+    private function getManagedClub(): Club
+    {
+        $user = auth()->user();
+
+        if (! $user || ! $user->club_id) {
+            abort(403, 'No tienes un club para administrar.');
+        }
+
+        $club = Club::find($user->club_id);
+
+        if (! $club || $club->admin_user_id !== $user->id) {
+            abort(403, 'No tienes permiso para administrar este club.');
+        }
+
+        return $club;
+    }
+
+    private function formatRoleLabel(string $role): string
+    {
+        return $role === 'entrenador' ? 'Entrenador' : 'Socorrista';
     }
 }

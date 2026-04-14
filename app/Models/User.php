@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\ClubInvitation;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -49,5 +50,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function ownedClubs(): HasMany
     {
         return $this->hasMany(\App\Models\Club::class, 'admin_user_id');
+    }
+
+    public function sentClubInvitations(): HasMany
+    {
+        return $this->hasMany(ClubInvitation::class, 'inviter_user_id');
+    }
+
+    public function receivedClubInvitations(): HasMany
+    {
+        return $this->hasMany(ClubInvitation::class, 'invited_user_id');
     }
 }

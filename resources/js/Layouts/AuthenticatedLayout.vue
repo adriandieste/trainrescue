@@ -1,5 +1,6 @@
 <script setup>
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import ClubInvitationsBell from '@/Components/ClubInvitationsBell.vue';
 import { Link } from '@inertiajs/vue3';
 </script>
 
@@ -56,8 +57,11 @@ import { Link } from '@inertiajs/vue3';
                             </Link>
                         </div>
 
-                        <div class="absolute right-0 hidden text-sm font-medium text-gray-500 sm:block">
-                            {{ $page.props.auth.user.name }}
+                        <div class="absolute right-0 hidden items-center gap-3 sm:flex">
+                            <ClubInvitationsBell />
+                            <span class="text-sm font-medium text-gray-500">
+                                {{ $page.props.auth.user.name }}
+                            </span>
                         </div>
                     </div>
                 </div>
