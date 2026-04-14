@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\ClubInvitation;
 use App\Models\ClubJoinRequest;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -32,6 +33,11 @@ class Club extends Model
     public function joinRequests(): HasMany
     {
         return $this->hasMany(ClubJoinRequest::class);
+    }
+
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(ClubInvitation::class);
     }
 
     public function admin(): BelongsTo

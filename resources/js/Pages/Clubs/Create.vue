@@ -31,7 +31,7 @@ function submit() {
             <div class="mx-auto max-w-2xl sm:px-6 lg:px-8">
                 <ClubForm
                     :form="form"
-                    intro="Completa el formulario para registrar tu club deportivo. Podrás gestionar tus atletas y planificar sus entrenamientos."
+                    intro="Completa el formulario para registrar tu club deportivo. Podrás gestionar tus socorristas y planificar sus entrenamientos."
                     submit-label="Crear Club"
                     processing-label="Creando..."
                     success-message="✓ Club creado exitosamente."

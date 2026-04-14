@@ -3,7 +3,9 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-const user = computed(() => usePage().props.auth.user);
+const page = usePage();
+const user = computed(() => page.props.auth.user);
+const flash = computed(() => page.props.flash ?? {});
 const currentClub = computed(() => user.value?.club ?? null);
 const currentClubLogoUrl = computed(() => currentClub.value?.logo_path ? `/storage/${currentClub.value.logo_path}` : null);
 </script>
@@ -14,12 +16,26 @@ const currentClubLogoUrl = computed(() => currentClub.value?.logo_path ? `/stora
     <AuthenticatedLayout>
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                Dashboard Atleta
+                Dashboard Socorrista
             </h2>
         </template>
 
         <div class="py-12">
             <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                <div
+                    v-if="flash.success"
+                    class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800 shadow-sm"
+                >
+                    {{ flash.success }}
+                </div>
+
+                <div
+                    v-if="flash.error"
+                    class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 shadow-sm"
+                >
+                    {{ flash.error }}
+                </div>
+
                 <div v-if="currentClub" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                     <div class="flex flex-col gap-4 p-6 md:flex-row md:items-start">
                         <div v-if="currentClubLogoUrl" class="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white">
