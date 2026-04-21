@@ -1,6 +1,6 @@
 <script setup>
 import ClubForm from '@/Pages/Clubs/Partials/ClubForm.vue';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import GeneralLayout from '@/Layouts/GeneralLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 
 const form = useForm({
@@ -20,7 +20,7 @@ function submit() {
 <template>
     <Head title="Crear Club" />
 
-    <AuthenticatedLayout>
+    <GeneralLayout>
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-gray-800">
                 Crear Club Deportivo
@@ -39,6 +39,6 @@ function submit() {
                 />
             </div>
         </div>
-    </AuthenticatedLayout>
+    </GeneralLayout>
 </template>
 

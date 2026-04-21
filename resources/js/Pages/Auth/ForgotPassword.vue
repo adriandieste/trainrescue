@@ -1,4 +1,5 @@
 <script setup>
+import AuthLayout from '@/Layouts/AuthLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -20,64 +21,54 @@ const submit = () => {
 </script>
 
 <template>
-    <div class="min-h-screen flex flex-col justify-center items-center bg-gradient-to-b from-blue-400 to-blue-600 py-20">
+    <AuthLayout title="Recupera tu acceso" subtitle="Te ayudaremos a volver a entrar en tu cuenta rápidamente">
         <Head title="Recuperar contraseña" />
 
-        <div class="flex flex-col items-center mb-6">
-            <img
-                src="/imagenes/trainrescue-logo-horizontal.png"
-                alt="Logo de Train & Rescue"
-                class="mb-2 h-12 w-auto object-contain"
-            />
-            <h1 class="text-3xl font-extrabold text-white">Train & Rescue</h1>
-            <p class="text-white mt-1">Recupera el acceso a tu cuenta</p>
+        <div class="mb-8 text-center lg:text-left">
+            <h2 class="text-3xl font-bold text-slate-800">¿Olvidaste tu clave?</h2>
+            <p class="text-slate-500 mt-2">Introduce tu email y te enviaremos las instrucciones de recuperación.</p>
         </div>
 
-        <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 mx-2">
-            <form @submit.prevent="submit">
-                <h2 class="text-xl font-bold text-center mb-1">Olvidé mi contraseña</h2>
-                <p class="text-center text-neutral-500 mb-6">
-                    Introduce tu correo y te enviaremos un enlace para restablecerla.
-                </p>
+        <div
+            v-if="status"
+            class="mb-6 p-4 rounded-2xl bg-green-50 border border-green-100 text-sm text-green-700 flex items-start gap-3"
+        >
+            <span class="text-lg">📩</span>
+            <span>{{ status }}</span>
+        </div>
 
-                <div
-                    v-if="status"
-                    class="mb-4 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700"
-                >
-                    {{ status }}
-                </div>
+        <form @submit.prevent="submit" class="space-y-6">
+            <div>
+                <InputLabel for="email" value="Correo electrónico" class="ml-1 mb-1 text-slate-700 font-semibold" />
+                <TextInput
+                    id="email"
+                    type="email"
+                    v-model="form.email"
+                    required
+                    autofocus
+                    autocomplete="username"
+                    class="w-full !rounded-xl !border-slate-200 focus:!ring-blue-500/20"
+                    placeholder="ejemplo@email.com"
+                />
+                <InputError class="mt-2" :message="form.errors.email" />
+            </div>
 
-                <div class="mb-4">
-                    <InputLabel for="email" value="Email" class="mb-1" />
+            <button
+                type="submit"
+                :disabled="form.processing"
+                class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-red-500/30 transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+                Enviar enlace de recuperación
+            </button>
 
-                    <TextInput
-                        id="email"
-                        type="email"
-                        class="w-full rounded-lg border border-neutral-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 px-4 py-3 text-base placeholder-neutral-400"
-                        v-model="form.email"
-                        required
-                        autofocus
-                        autocomplete="username"
-                        placeholder="ejemplo@email.com"
-                    />
-
-                    <InputError class="mt-2" :message="form.errors.email" />
-                </div>
-
-                <button
-                    type="submit"
-                    class="w-full bg-red-500 text-white font-bold py-3 rounded-xl mt-2 shadow-md transition-all hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                    :disabled="form.processing"
-                >
-                    Enviar enlace de recuperación
-                </button>
-
-                <div class="mt-6 text-center">
-                    <Link :href="route('login')" class="text-red-500 font-semibold hover:underline">
-                        Volver al inicio de sesión
+            <div class="pt-6 text-center border-t border-slate-50 mt-4">
+                <p class="text-slate-500 text-sm">
+                    ¿Recordaste tu contraseña?
+                    <Link :href="route('login')" class="text-blue-600 font-bold hover:text-blue-700 transition-colors ml-1">
+                        Inicia sesión
                     </Link>
-                </div>
-            </form>
-        </div>
-    </div>
+                </p>
+            </div>
+        </form>
+    </AuthLayout>
 </template>

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import GeneralLayout from '@/Layouts/GeneralLayout.vue';
 import DeleteUserForm from './Partials/DeleteUserForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
@@ -47,7 +47,7 @@ const goToSetting = (id) => {
 <template>
     <Head title="Perfil" />
 
-    <AuthenticatedLayout>
+    <GeneralLayout>
         <div class="w-full min-h-[100dvh] flex flex-col">
             <div class="bg-white p-3 ">
                 <div class="w-full max-w-6xl mx-auto  bg-white p-6 ">
@@ -219,5 +219,5 @@ const goToSetting = (id) => {
                 </div>
             </section>
         </div>
-    </AuthenticatedLayout>
+    </GeneralLayout>
 </template>

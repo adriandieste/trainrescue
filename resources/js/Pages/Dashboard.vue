@@ -1,5 +1,5 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import GeneralLayout from '@/Layouts/GeneralLayout.vue';
 import { Head, usePage, Link, useForm, router } from '@inertiajs/vue3';
 import { ref, computed, onMounted } from 'vue';
 import DeleteClubForm from '@/Pages/Clubs/Partials/DeleteClubForm.vue';
@@ -106,7 +106,7 @@ function initials(name) {
 <template>
     <Head title="Dashboard Entrenador" />
 
-    <AuthenticatedLayout>
+    <GeneralLayout>
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-gray-800">
                 Dashboard Entrenador
@@ -449,5 +449,5 @@ function initials(name) {
                 </div>
             </div>
         </div>
-    </AuthenticatedLayout>
+    </GeneralLayout>
 </template>

@@ -1,5 +1,5 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import GeneralLayout from '@/Layouts/GeneralLayout.vue';
 import { Head, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
@@ -13,7 +13,7 @@ const currentClubLogoUrl = computed(() => currentClub.value?.logo_path ? `/stora
 <template>
     <Head title="Dashboard Atleta" />
 
-    <AuthenticatedLayout>
+    <GeneralLayout>
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-gray-800">
                 Dashboard Socorrista
@@ -62,6 +62,6 @@ const currentClubLogoUrl = computed(() => currentClub.value?.logo_path ? `/stora
                 </div>
             </div>
         </div>
-    </AuthenticatedLayout>
+    </GeneralLayout>
 </template>
 

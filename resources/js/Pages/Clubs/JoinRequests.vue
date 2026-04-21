@@ -1,5 +1,5 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import GeneralLayout from '@/Layouts/GeneralLayout.vue';
 import { Head, usePage, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
@@ -40,7 +40,7 @@ function rejectRequest(id) {
 <template>
     <Head :title="`Solicitudes de union - ${club.name}`" />
 
-    <AuthenticatedLayout>
+    <GeneralLayout>
         <template #header>
             <div class="flex items-center gap-3">
                 <h2 class="text-xl font-semibold leading-tight text-gray-800">
@@ -135,6 +135,6 @@ function rejectRequest(id) {
                 </div>
             </div>
         </div>
-    </AuthenticatedLayout>
+    </GeneralLayout>
 </template>
 

@@ -1,4 +1,5 @@
 <script setup>
+import AuthLayout from '@/Layouts/AuthLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -30,89 +31,71 @@ const submit = () => {
 </script>
 
 <template>
-    <div class="min-h-screen flex flex-col justify-center items-center bg-gradient-to-b from-blue-400 to-blue-600 py-20">
+    <AuthLayout title="Nueva contraseña" subtitle="Crea una clave segura para volver a entrar en acción">
         <Head title="Restablecer contraseña" />
 
-        <div class="flex flex-col items-center mb-6">
-            <img
-                src="/imagenes/trainrescue-logo-horizontal.png"
-                alt="Logo de Train & Rescue"
-                class="mb-2 h-12 w-auto object-contain"
-            />
-            <h1 class="text-3xl font-extrabold text-white">Train & Rescue</h1>
-            <p class="text-white mt-1">Crea una nueva contraseña</p>
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold text-slate-800">Restablecer</h2>
+            <p class="text-slate-500 mt-1">Introduce tus nuevos datos de acceso</p>
         </div>
 
-        <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 mx-2">
-            <form @submit.prevent="submit">
-                <h2 class="text-xl font-bold text-center mb-1">Restablecer contraseña</h2>
-                <p class="text-center text-neutral-500 mb-6">
-                    Introduce tu nueva contraseña para volver a acceder.
-                </p>
+        <form @submit.prevent="submit" class="space-y-5">
+            <div>
+                <InputLabel for="email" value="Confirmar Email" class="ml-1 mb-1 text-slate-700 font-semibold" />
+                <TextInput
+                    id="email"
+                    type="email"
+                    v-model="form.email"
+                    required
+                    autocomplete="username"
+                    class="w-full !rounded-xl !border-slate-200 !bg-slate-50 focus:!ring-blue-500/20"
+                    placeholder="tu@email.com"
+                />
+                <InputError :message="form.errors.email" class="mt-1" />
+            </div>
 
-                <div class="mb-4">
-                    <InputLabel for="email" value="Email" class="mb-1" />
+            <div>
+                <InputLabel for="password" value="Nueva contraseña" class="ml-1 mb-1 text-slate-700 font-semibold" />
+                <TextInput
+                    id="password"
+                    type="password"
+                    v-model="form.password"
+                    required
+                    autofocus
+                    autocomplete="new-password"
+                    class="w-full !rounded-xl !border-slate-200 focus:!ring-blue-500/20"
+                    placeholder="••••••••"
+                />
+                <InputError :message="form.errors.password" class="mt-1" />
+            </div>
 
-                    <TextInput
-                        id="email"
-                        type="email"
-                        v-model="form.email"
-                        required
-                        autofocus
-                        autocomplete="username"
-                        class="w-full rounded-lg border border-neutral-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 px-4 py-3 text-base placeholder-neutral-400"
-                        placeholder="ejemplo@email.com"
-                    />
+            <div>
+                <InputLabel for="password_confirmation" value="Repetir contraseña" class="ml-1 mb-1 text-slate-700 font-semibold" />
+                <TextInput
+                    id="password_confirmation"
+                    type="password"
+                    v-model="form.password_confirmation"
+                    required
+                    autocomplete="new-password"
+                    class="w-full !rounded-xl !border-slate-200 focus:!ring-blue-500/20"
+                    placeholder="••••••••"
+                />
+                <InputError :message="form.errors.password_confirmation" class="mt-1" />
+            </div>
 
-                    <InputError class="mt-2" :message="form.errors.email" />
-                </div>
+            <button
+                type="submit"
+                :disabled="form.processing"
+                class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-red-500/30 transition-all active:scale-[0.98] disabled:opacity-50 mt-4"
+            >
+                Actualizar contraseña
+            </button>
 
-                <div class="mb-4">
-                    <InputLabel for="password" value="Nueva contraseña" class="mb-1" />
-
-                    <TextInput
-                        id="password"
-                        type="password"
-                        v-model="form.password"
-                        required
-                        autocomplete="new-password"
-                        class="w-full rounded-lg border border-neutral-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 px-4 py-3 text-base placeholder-neutral-400"
-                        placeholder="********"
-                    />
-
-                    <InputError class="mt-2" :message="form.errors.password" />
-                </div>
-
-                <div class="mb-4">
-                    <InputLabel for="password_confirmation" value="Confirmar contraseña" class="mb-1" />
-
-                    <TextInput
-                        id="password_confirmation"
-                        type="password"
-                        v-model="form.password_confirmation"
-                        required
-                        autocomplete="new-password"
-                        class="w-full rounded-lg border border-neutral-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 px-4 py-3 text-base placeholder-neutral-400"
-                        placeholder="********"
-                    />
-
-                    <InputError class="mt-2" :message="form.errors.password_confirmation" />
-                </div>
-
-                <button
-                    type="submit"
-                    class="w-full bg-red-500 text-white font-bold py-3 rounded-xl mt-2 shadow-md transition-all hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                    :disabled="form.processing"
-                >
-                    Guardar nueva contraseña
-                </button>
-
-                <div class="mt-6 text-center">
-                    <Link :href="route('login')" class="text-red-500 font-semibold hover:underline">
-                        Volver al inicio de sesión
-                    </Link>
-                </div>
-            </form>
-        </div>
-    </div>
+            <div class="pt-4 text-center border-t border-slate-50 mt-6">
+                <Link :href="route('login')" class="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">
+                    ← Volver al inicio de sesión
+                </Link>
+            </div>
+        </form>
+    </AuthLayout>
 </template>
