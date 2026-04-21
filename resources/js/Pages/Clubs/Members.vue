@@ -1,5 +1,5 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import GeneralLayout from '@/Layouts/GeneralLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
@@ -74,7 +74,7 @@ function initials(name) {
 <template>
     <Head :title="`Miembros - ${club.name}`" />
 
-    <AuthenticatedLayout>
+    <GeneralLayout>
         <template #header>
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -304,5 +304,5 @@ function initials(name) {
                 </div>
             </div>
         </div>
-    </AuthenticatedLayout>
+    </GeneralLayout>
 </template>
