@@ -40,6 +40,7 @@ class ClubController extends Controller
             'club' => [
                 'id' => $club->id,
                 'name' => $club->name,
+                'admin_user_id' => $club->admin_user_id,
                 'description' => $club->description,
                 'logo_path' => $club->logo_path,
                 'logo_url' => $club->logo_path ? asset('storage/' . $club->logo_path) : null,
@@ -100,6 +101,7 @@ class ClubController extends Controller
             return [
                 'id' => $club->id,
                 'name' => $club->name,
+                'admin_user_id' => $club->admin_user_id,
                 'description' => $club->description,
                 'logo_path' => $club->logo_path ? "/storage/{$club->logo_path}" : null,
             ];
@@ -283,6 +285,7 @@ class ClubController extends Controller
             'club' => [
                 'id' => $club->id,
                 'name' => $club->name,
+                'admin_user_id' => $club->admin_user_id,
             ],
             'filters' => [
                 'search' => $search,
@@ -422,6 +425,27 @@ class ClubController extends Controller
         }
 
         return $club;
+    }
+
+
+    public function removeMember(Request $request, User $user): RedirectResponse
+    {
+        $club = $this->getManagedClub();
+
+        if ($user->club_id !== $club->id) {
+            abort(403, 'Este usuario no pertenece a tu club.');
+        }
+
+        if ($user->id === $club->admin_user_id) {
+            return redirect()->route('dashboard')
+                ->with('error', 'No puedes expulsar al administrador del club.');
+        }
+
+        $user->club_id = null;
+        $user->save();
+
+        return redirect()->route('dashboard')
+            ->with('success', "{$user->name} ha sido expulsado del club correctamente.");
     }
 
     private function formatRoleLabel(string $role): string

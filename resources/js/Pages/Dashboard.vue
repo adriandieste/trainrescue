@@ -101,6 +101,25 @@ function initials(name) {
         .map((p) => p.charAt(0).toUpperCase())
         .join('');
 }
+const memberToRemove = ref(null);
+const isRemoving = ref(false);
+function confirmRemove(member) {
+    memberToRemove.value = member;
+}
+function cancelRemove() {
+    memberToRemove.value = null;
+}
+function removeMember() {
+    if (!memberToRemove.value) return;
+    isRemoving.value = true;
+    router.delete(route('clubs.members.remove', memberToRemove.value.id), {
+        preserveScroll: true,
+        onFinish: () => {
+            isRemoving.value = false;
+            memberToRemove.value = null;
+        },
+    });
+}
 </script>
 
 <template>
@@ -289,6 +308,7 @@ function initials(name) {
                                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Miembro</th>
                                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Email</th>
                                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Rol</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100 bg-white">
@@ -306,6 +326,20 @@ function initials(name) {
                                         </td>
                                         <td class="whitespace-nowrap px-4 py-4 text-sm text-gray-600">{{ member.email }}</td>
                                         <td class="whitespace-nowrap px-4 py-4 text-sm text-gray-700">{{ member.role_label }}</td>
+                                        <td class="whitespace-nowrap px-4 py-4 text-sm">
+                                            <button
+                                                v-if="member.id !== currentClub.admin_user_id"
+                                                type="button"
+                                                class="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                                                @click="confirmRemove(member)"
+                                            >
+                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M22 10.5h-6m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM4 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 10.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
+                                                </svg>
+                                                Expulsar
+                                            </button>
+                                            <span v-else class="text-xs text-gray-400 italic">Admin</span>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -449,5 +483,52 @@ function initials(name) {
                 </div>
             </div>
         </div>
+
+        <!-- Modal confirmación expulsión -->
+        <Teleport to="body">
+            <Transition
+                enter-active-class="transition ease-out duration-200"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="transition ease-in duration-150"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+            >
+                <div v-if="memberToRemove" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="cancelRemove" />
+                    <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                        <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                            <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900">Confirmar expulsión</h3>
+                        <p class="mt-2 text-sm text-gray-600">
+                            ¿Estás seguro de que deseas expulsar a
+                            <strong class="text-gray-900">{{ memberToRemove.name }}</strong>
+                            del club? Esta acción romperá su vínculo con el equipo de forma inmediata.
+                        </p>
+                        <div class="mt-6 flex gap-3">
+                            <button
+                                type="button"
+                                class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                                @click="cancelRemove"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                class="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
+                                :disabled="isRemoving"
+                                @click="removeMember"
+                            >
+                                <span v-if="isRemoving">Expulsando...</span>
+                                <span v-else>Sí, expulsar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
     </GeneralLayout>
 </template>

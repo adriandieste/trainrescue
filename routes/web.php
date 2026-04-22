@@ -21,6 +21,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/clubs/{club}', [ClubController::class, 'update'])->name('clubs.update');
         Route::delete('/clubs/{club}', [ClubController::class, 'destroy'])->name('clubs.destroy');
         Route::get('/clubs/members', [ClubController::class, 'members'])->name('clubs.members.index');
+        Route::delete('/clubs/members/{user}', [ClubController::class, 'removeMember'])->name('clubs.members.remove');
         Route::post('/clubs/invitations', [ClubInvitationController::class, 'store'])->name('club-invitations.store');
 
         Route::get('/clubs/available', [ClubController::class, 'getAvailableClubs'])->name('clubs.available');
