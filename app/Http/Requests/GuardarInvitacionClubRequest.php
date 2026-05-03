@@ -48,7 +48,7 @@ class GuardarInvitacionClubRequest extends FormRequest
                 $validator->errors()->add('invited_user_id', 'No puedes invitarte a ti mismo.');
             }
 
-            if ($invitedUser->rol !== 'atleta') {
+            if (! in_array($invitedUser->rol, ['socorrista', 'atleta'], true)) {
                 $validator->errors()->add('invited_user_id', 'Solo puedes invitar a socorristas.');
             }
 

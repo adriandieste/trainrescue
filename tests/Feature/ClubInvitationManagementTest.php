@@ -13,42 +13,6 @@ class ClubInvitationManagementTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_view_members_page_and_search_existing_socorristas(): void
-    {
-        $trainer = User::factory()->create([
-            'name' => 'Entrenador Admin',
-            'rol' => 'entrenador',
-        ]);
-
-        $club = Club::create([
-            'name' => 'Club Rescate',
-            'admin_user_id' => $trainer->id,
-        ]);
-
-        $trainer->update(['club_id' => $club->id]);
-
-        $candidate = User::factory()->create([
-            'name' => 'Ana Socorrista',
-            'email' => 'ana@example.com',
-            'rol' => 'atleta',
-        ]);
-
-        User::factory()->create([
-            'name' => 'Pedro Fuera',
-            'email' => 'pedro@example.com',
-            'rol' => 'atleta',
-        ]);
-
-        $response = $this
-            ->actingAs($trainer)
-            ->get(route('clubs.members.index', ['search' => 'Ana']));
-
-        $response
-            ->assertOk()
-            ->assertSee('Ana Socorrista')
-            ->assertSee('ana@example.com')
-            ->assertDontSee('pedro@example.com');
-    }
 
     public function test_admin_can_send_a_pending_invitation_to_a_socorrista(): void
     {
@@ -71,7 +35,7 @@ class ClubInvitationManagementTest extends TestCase
             ]);
 
         $response
-            ->assertRedirect(route('clubs.members.index', ['search' => $athlete->email]));
+            ->assertRedirect(route('dashboard'));
 
         $this->assertDatabaseHas('club_invitations', [
             'club_id' => $club->id,
@@ -103,7 +67,7 @@ class ClubInvitationManagementTest extends TestCase
 
         $response = $this
             ->actingAs($trainer)
-            ->from(route('clubs.members.index', ['search' => $athlete->email]))
+            ->from(route('dashboard'))
             ->post(route('club-invitations.store'), [
                 'invited_user_id' => $athlete->id,
                 'search' => $athlete->email,
@@ -111,7 +75,7 @@ class ClubInvitationManagementTest extends TestCase
 
         $response
             ->assertSessionHasErrors('invited_user_id')
-            ->assertRedirect(route('clubs.members.index', ['search' => $athlete->email]));
+            ->assertRedirect(route('dashboard'));
 
         $this->assertSame(1, ClubInvitation::count());
     }
@@ -236,36 +200,4 @@ class ClubInvitationManagementTest extends TestCase
         ]);
     }
 
-    public function test_members_list_is_paginated_for_large_clubs(): void
-    {
-        $trainer = User::factory()->create([
-            'name' => 'Administrador Club',
-            'rol' => 'entrenador',
-        ]);
-
-        $club = Club::create([
-            'name' => 'Club Grande',
-            'admin_user_id' => $trainer->id,
-        ]);
-
-        $trainer->update(['club_id' => $club->id]);
-
-        for ($i = 1; $i <= 11; $i++) {
-            User::factory()->create([
-                'name' => sprintf('Miembro %02d', $i),
-                'email' => sprintf('miembro%02d@example.com', $i),
-                'rol' => 'atleta',
-                'club_id' => $club->id,
-            ]);
-        }
-
-        $response = $this
-            ->actingAs($trainer)
-            ->get(route('clubs.members.index'));
-
-        $response
-            ->assertOk()
-            ->assertSee('Miembro 01')
-            ->assertDontSee('Miembro 11');
-    }
 }

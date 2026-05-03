@@ -48,10 +48,10 @@ const submit = () => form.post(route('register'), { onFinish: () => form.reset('
             <div>
                 <InputLabel value="¿Quién eres?" class="mb-3" />
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <button type="button" @click="form.rol = 'atleta'"
-                            :class="['flex-1 p-4 rounded-2xl border-2 transition-all flex items-center gap-3', form.rol === 'atleta' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-100 hover:border-blue-200']">
+                    <button type="button" @click="form.rol = 'socorrista'"
+                            :class="['flex-1 p-4 rounded-2xl border-2 transition-all flex items-center gap-3', form.rol === 'socorrista' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-100 hover:border-blue-200']">
                         <div class="bg-blue-100 p-2 rounded-lg text-blue-600">👤</div>
-                        <span class="font-bold text-slate-700">Atleta</span>
+                        <span class="font-bold text-slate-700">Socorrista</span>
                     </button>
                     <button type="button" @click="form.rol = 'entrenador'"
                             :class="['flex-1 p-4 rounded-2xl border-2 transition-all flex items-center gap-3', form.rol === 'entrenador' ? 'border-orange-400 bg-orange-50 shadow-md' : 'border-slate-100 hover:border-orange-200']">

@@ -21,6 +21,7 @@ const props = defineProps({
 
 const activeTab = ref('perfil');
 const isEntrenador = computed(() => props.userProfile.rol === 'entrenador');
+const roleLabel = computed(() => props.userProfile.role_label ?? (isEntrenador.value ? 'Entrenador' : 'Socorrista'));
 const darkModeEnabled = ref(false);
 const notificationsEnabled = ref(true);
 
@@ -70,7 +71,7 @@ const goToSetting = (id) => {
                         <div class="rounded-xl bg-neutral-100 p-3 px-6 text-center min-w-[140px] shadow-sm">
                             <p class="text-xs uppercase tracking-wider text-neutral-500 font-medium">Rol</p>
                             <p class="mt-0.5 text-lg font-bold text-neutral-900">
-                                {{ isEntrenador ? 'Entrenador' : 'Atleta' }}
+                                {{ roleLabel }}
                             </p>
                         </div>
 
@@ -111,7 +112,7 @@ const goToSetting = (id) => {
 
                 <div class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
                     <h4 class="text-2xl font-bold text-neutral-900">
-                        {{ isEntrenador ? 'Perfil de Entrenador' : 'Perfil de Atleta' }}
+                        {{ isEntrenador ? 'Perfil de Entrenador' : 'Perfil de Socorrista' }}
                     </h4>
                     <p class="mt-2 text-neutral-600">
                         {{

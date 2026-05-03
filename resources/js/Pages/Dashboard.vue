@@ -105,17 +105,28 @@ function initials(name) {
 const memberToRemove = ref(null);
 const isRemoving = ref(false);
 const memberToPromote = ref(null);
+const memberToPromoteTargetRole = ref(null);
 const isPromoting = ref(false);
 const promotingMemberId = ref(null);
 
+function confirmChangeRole(member, targetRole) {
+    memberToPromote.value = member;
+    memberToPromoteTargetRole.value = targetRole;
+}
+
 function confirmPromote(member) {
     if (!member || member.role === 'entrenador') return;
+    confirmChangeRole(member, 'entrenador');
+}
 
-    memberToPromote.value = member;
+function confirmDegrade(member) {
+    if (!member || member.role !== 'entrenador') return;
+    confirmChangeRole(member, 'socorrista');
 }
 
 function cancelPromote() {
     memberToPromote.value = null;
+    memberToPromoteTargetRole.value = null;
 }
 
 function promoteMember() {
@@ -125,13 +136,14 @@ function promoteMember() {
     promotingMemberId.value = memberToPromote.value.id;
 
     router.patch(route('clubs.members.update-role', memberToPromote.value.id), {
-        rol: 'entrenador',
+        rol: memberToPromoteTargetRole.value,
     }, {
         preserveScroll: true,
         onFinish: () => {
             isPromoting.value = false;
             promotingMemberId.value = null;
             memberToPromote.value = null;
+            memberToPromoteTargetRole.value = null;
         },
     });
 }
@@ -372,19 +384,36 @@ function removeMember() {
                                                 </template>
 
                                                 <template #content>
+                                                    <!-- Promover a Entrenador (solo si es socorrista) -->
                                                     <button
+                                                        v-if="member.role !== 'entrenador'"
                                                         type="button"
                                                         class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
-                                                        :disabled="promotingMemberId === member.id || member.role === 'entrenador'"
+                                                        :disabled="promotingMemberId === member.id"
                                                         @click="confirmPromote(member)"
                                                     >
                                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                                             <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9A2.25 2.25 0 0 1 5.25 16.5v-9A2.25 2.25 0 0 1 7.5 5.25h5.379a2.25 2.25 0 0 1 1.591.659l3.621 3.621a2.25 2.25 0 0 1 .659 1.591V16.5a2.25 2.25 0 0 1-2.25 2.25Z" />
                                                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75h6m-3-3v6" />
                                                         </svg>
-                                                        <span v-if="promotingMemberId === member.id">Promoviendo...</span>
-                                                        <span v-else-if="member.role === 'entrenador'">Ya es entrenador</span>
-                                                        <span v-else>Promover a Entrenador</span>
+                                                        <span v-if="promotingMemberId === member.id">Actualizando...</span>
+                                                        <span v-else>↑ Promover a Entrenador</span>
+                                                    </button>
+
+                                                    <!-- Degradar a Socorrista (solo si es entrenador no-admin) -->
+                                                    <button
+                                                        v-if="member.role === 'entrenador'"
+                                                        type="button"
+                                                        class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                                        :disabled="promotingMemberId === member.id"
+                                                        @click="confirmDegrade(member)"
+                                                    >
+                                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9A2.25 2.25 0 0 1 5.25 16.5v-9A2.25 2.25 0 0 1 7.5 5.25h5.379a2.25 2.25 0 0 1 1.591.659l3.621 3.621a2.25 2.25 0 0 1 .659 1.591V16.5a2.25 2.25 0 0 1-2.25 2.25Z" />
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75h6" />
+                                                        </svg>
+                                                        <span v-if="promotingMemberId === member.id">Actualizando...</span>
+                                                        <span v-else>↓ Degradar a Socorrista</span>
                                                     </button>
 
                                                     <button
@@ -604,16 +633,32 @@ function removeMember() {
                 <div v-if="memberToPromote" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="cancelPromote" />
                     <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-                        <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-                            <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <div
+                            class="mb-4 flex h-12 w-12 items-center justify-center rounded-full"
+                            :class="memberToPromoteTargetRole === 'entrenador' ? 'bg-blue-100' : 'bg-amber-100'"
+                        >
+                            <svg
+                                class="h-6 w-6"
+                                :class="memberToPromoteTargetRole === 'entrenador' ? 'text-blue-600' : 'text-amber-600'"
+                                fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                            >
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M18 9.75V6.75A2.25 2.25 0 0 0 15.75 4.5h-7.5A2.25 2.25 0 0 0 6 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 17.25v-3m-6-2.25h7.5m0 0-2.25-2.25M19.5 12l-2.25 2.25" />
                             </svg>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-900">Confirmar promoción</h3>
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            {{ memberToPromoteTargetRole === 'entrenador' ? 'Confirmar promoción' : 'Confirmar degradación' }}
+                        </h3>
                         <p class="mt-2 text-sm text-gray-600">
-                            ¿Quieres promover a
-                            <strong class="text-gray-900">{{ memberToPromote.name }}</strong>
-                            para que pase a ser Entrenador del club? Tendrá acceso inmediato a las herramientas de gestión disponibles para este rol.
+                            <template v-if="memberToPromoteTargetRole === 'entrenador'">
+                                ¿Quieres promover a
+                                <strong class="text-gray-900">{{ memberToPromote.name }}</strong>
+                                para que pase a ser Entrenador del club? Tendrá acceso inmediato a las herramientas de gestión disponibles para este rol.
+                            </template>
+                            <template v-else>
+                                ¿Quieres revocar el rol de Entrenador a
+                                <strong class="text-gray-900">{{ memberToPromote.name }}</strong>?
+                                Perderá inmediatamente el acceso a la gestión del club y pasará a ser Socorrista.
+                            </template>
                         </p>
                         <div class="mt-6 flex gap-3">
                             <button
@@ -625,12 +670,14 @@ function removeMember() {
                             </button>
                             <button
                                 type="button"
-                                class="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+                                class="flex-1 rounded-lg px-4 py-2 text-sm font-medium text-white transition disabled:opacity-50"
+                                :class="memberToPromoteTargetRole === 'entrenador' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-amber-600 hover:bg-amber-700'"
                                 :disabled="isPromoting"
                                 @click="promoteMember"
                             >
-                                <span v-if="isPromoting">Promoviendo...</span>
-                                <span v-else>Sí, promover</span>
+                                <span v-if="isPromoting">Actualizando...</span>
+                                <span v-else-if="memberToPromoteTargetRole === 'entrenador'">Sí, promover</span>
+                                <span v-else>Sí, degradar</span>
                             </button>
                         </div>
                     </div>

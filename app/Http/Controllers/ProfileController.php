@@ -20,6 +20,8 @@ class ProfileController extends Controller
     public function edit(Request $request): Response
     {
         $user = $request->user()->load('club');
+        $canonicalRole = $user->rol === 'atleta' ? 'socorrista' : $user->rol;
+        $roleLabel = $canonicalRole === 'entrenador' ? 'Entrenador' : 'Socorrista';
 
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
@@ -27,7 +29,8 @@ class ProfileController extends Controller
             'userProfile' => [
                 'name'   => $user->name,
                 'email'  => $user->email,
-                'rol'    => $user->rol,
+                'rol'    => $canonicalRole,
+                'role_label' => $roleLabel,
                 'avatar' => $user->avatar,
                 'club'   => $user->club?->name,
             ],
