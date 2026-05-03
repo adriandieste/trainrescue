@@ -141,8 +141,8 @@ class ClubController extends Controller
             ]);
         }
 
-        $club = Club::with('administrador')->find($validated['club_id']);
-        $admin = $club?->administrador;
+        $club = Club::with('admin')->find($validated['club_id']);
+        $admin = $club?->admin;
 
         if ($admin) {
             $admin->notify(new \App\Notifications\ClubJoinRequestNotification($solicitudUnion));
@@ -154,6 +154,7 @@ class ClubController extends Controller
     /**
      * Mostrar solicitudes pendientes del club del admin.
      */
+    public function joinRequests(): Response|RedirectResponse
     {
         $user = auth()->user();
 
@@ -184,7 +185,7 @@ class ClubController extends Controller
                 'created_at' => $req->created_at->diffForHumans(),
             ]);
 
-        return Inertia::render('Clubs/JoinRequests', [
+        return Inertia::render('Clubes/SolicitudesUnion', [
             'club'     => ['id' => $club->id, 'name' => $club->name],
             'requests' => $pendingRequests,
         ]);
@@ -280,7 +281,7 @@ class ClubController extends Controller
                 'created_at' => $invitation->created_at->diffForHumans(),
             ]);
 
-        return Inertia::render('Clubs/Members', [
+        return Inertia::render('Clubes/Miembros', [
             'club' => [
                 'id' => $club->id,
                 'name' => $club->name,
@@ -374,7 +375,7 @@ class ClubController extends Controller
      */
     public function destroy(Request $request, Club $club): RedirectResponse
     {
-        Gate::authorize('eliminar', $club);
+        Gate::authorize('delete', $club);
 
         $request->validate([
             'confirm_name' => ['required', 'string', Rule::in([$club->name])],
@@ -400,7 +401,7 @@ class ClubController extends Controller
     /**
      * Verifica que el usuario autenticado puede administrar el club indicado.
      */
-    private function authorizeClubAdministration(Club $club): void
+    private function autorizarAdministracionClub(Club $club): void
     {
         $user = auth()->user();
 
@@ -445,6 +446,34 @@ class ClubController extends Controller
 
         return redirect()->route('dashboard')
             ->with('success', "{$user->name} ha sido expulsado del club correctamente.");
+    }
+
+    public function updateRole(Request $request, User $user): RedirectResponse
+    {
+        $club = $this->getManagedClub();
+
+        $validated = $request->validate([
+            'rol' => ['required', Rule::in(['entrenador'])],
+        ]);
+
+        if ($user->club_id !== $club->id) {
+            abort(403, 'Este usuario no pertenece a tu club.');
+        }
+
+        if ($user->id === $club->admin_user_id) {
+            return redirect()->route('dashboard')
+                ->with('error', 'El administrador del club ya dispone de este rol.');
+        }
+
+        if ($user->rol === $validated['rol']) {
+            return redirect()->route('dashboard')
+                ->with('error', "{$user->name} ya tiene el rol de Entrenador.");
+        }
+
+        $user->update(['rol' => $validated['rol']]);
+
+        return redirect()->route('dashboard')
+            ->with('success', "{$user->name} ha sido promovido a Entrenador del club.");
     }
 
     private function formatRoleLabel(string $role): string
