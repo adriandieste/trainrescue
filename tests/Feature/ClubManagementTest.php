@@ -347,5 +347,35 @@ class ClubManagementTest extends TestCase
         ]);
     }
 
-}
+    public function test_socorrista_can_view_club_info_in_dashboard(): void
+    {
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+        $socorrista = User::factory()->create(['rol' => 'socorrista']);
 
+        $club = Club::create([
+            'name' => 'Club Test',
+            'description' => 'Test Club Description',
+            'admin_user_id' => $trainer->id,
+        ]);
+
+        $trainer->update(['club_id' => $club->id]);
+        $socorrista->update(['club_id' => $club->id]);
+
+        $response = $this
+            ->actingAs($socorrista)
+            ->get(route('dashboard'));
+
+        $response->assertOk();
+    }
+
+    public function test_socorrista_without_club_sees_dashboard(): void
+    {
+        $socorrista = User::factory()->create(['rol' => 'socorrista']);
+
+        $response = $this
+            ->actingAs($socorrista)
+            ->get(route('dashboard'));
+
+        $response->assertOk();
+    }
+}

@@ -144,9 +144,27 @@ class DashboardController extends Controller
                     'created_at' => $invitation->created_at->diffForHumans(),
                 ]);
 
+            $clubmates = [];
+            if ($user->club_id) {
+                $clubmates = $user->club->users()
+                    ->where('id', '!=', $user->id)
+                    ->orderBy('name')
+                    ->get()
+                    ->map(fn (User $member) => [
+                        'id' => $member->id,
+                        'name' => $member->name,
+                        'email' => $member->email,
+                        'avatar_url' => $member->avatar ? asset('storage/' . $member->avatar) : null,
+                        'role' => $member->rol,
+                        'role_label' => $member->rol === 'entrenador' ? 'Entrenador' : 'Socorrista',
+                    ])
+                    ->all();
+            }
+
             return Inertia::render('DashboardAtleta', [
                 'invitationsTitle' => 'Invitaciones',
                 'pendingInvitations' => $pendingInvitations,
+                'clubmates' => $clubmates,
             ]);
         }
 
