@@ -20,21 +20,24 @@ const flash = computed(() => page.props.flash ?? {});
 const search = ref('');
 const selectedCategory = ref('all');
 const selectedExerciseId = ref(props.exercises[0]?.id ?? null);
-
+const selectedSource = ref(sessionStorage.getItem('exerciseSourceFilter') ?? 'all');
+watch(selectedSource, (val) => {
+    sessionStorage.setItem('exerciseSourceFilter', val);
+    selectedCategory.value = 'all';
+});
 const filteredExercises = computed(() => {
     const term = search.value.trim().toLowerCase();
-
     return props.exercises.filter((exercise) => {
+        if (selectedSource.value !== 'all' && exercise.source !== selectedSource.value) {
+            return false;
+        }
         const matchesCategory = selectedCategory.value === 'all' || exercise.category === selectedCategory.value;
-
         if (!matchesCategory) {
             return false;
         }
-
         if (!term) {
             return true;
         }
-
         return (
             exercise.name.toLowerCase().includes(term)
             || exercise.technical_description.toLowerCase().includes(term)
@@ -296,6 +299,34 @@ function formatCategory(category) {
             <div class="grid gap-6 lg:grid-cols-3">
                 <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg lg:col-span-1">
                     <div class="border-b border-gray-200 p-4">
+                        <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">Origen</label>
+                        <div class="mb-4 flex gap-1.5">
+                            <button
+                                type="button"
+                                class="flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition"
+                                :class="selectedSource === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                                @click="selectedSource = 'all'"
+                            >
+                                Todos
+                            </button>
+                            <button
+                                type="button"
+                                class="flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition"
+                                :class="selectedSource === 'predefined' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                                @click="selectedSource = 'predefined'"
+                            >
+                                RFESS
+                            </button>
+                            <button
+                                type="button"
+                                class="flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition"
+                                :class="selectedSource === 'custom' ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                                @click="selectedSource = 'custom'"
+                            >
+                                Mis ejercicios
+                            </button>
+                        </div>
+
                         <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">Buscar</label>
                         <input
                             v-model="search"
@@ -322,7 +353,10 @@ function formatCategory(category) {
                             :key="exercise.id"
                             type="button"
                             class="w-full border-b border-gray-100 px-4 py-3 text-left transition hover:bg-gray-50"
-                            :class="selectedExerciseId === exercise.id ? 'bg-blue-50' : ''"
+                            :class="[
+                                selectedExerciseId === exercise.id ? 'bg-blue-50' : '',
+                                exercise.source === 'custom' ? 'border-l-4 border-l-violet-400' : 'border-l-4 border-l-transparent',
+                            ]"
                             @click="selectedExerciseId = exercise.id"
                         >
                             <span class="block text-sm font-semibold text-gray-900">{{ exercise.name }}</span>
@@ -339,6 +373,10 @@ function formatCategory(category) {
 
                         <div v-if="filteredExercises.length === 0" class="p-4 text-sm text-gray-500">
                             No hay ejercicios que coincidan con los filtros actuales.
+                        </div>
+
+                        <div v-if="filteredExercises.length > 0" class="border-t border-gray-100 px-4 py-2 text-xs text-gray-400">
+                            {{ filteredExercises.length }} {{ filteredExercises.length === 1 ? 'ejercicio' : 'ejercicios' }} encontrado{{ filteredExercises.length === 1 ? '' : 's' }}
                         </div>
                     </div>
                 </div>
