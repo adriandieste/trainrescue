@@ -350,7 +350,8 @@ class ClubManagementTest extends TestCase
     public function test_socorrista_can_view_club_info_in_dashboard(): void
     {
         $trainer = User::factory()->create(['rol' => 'entrenador']);
-        $socorrista = User::factory()->create(['rol' => 'socorrista']);
+        $socorrista = User::factory()->create(['rol' => 'socorrista', 'name' => 'Socorrista Actual']);
+        $companion = User::factory()->create(['rol' => 'socorrista', 'name' => 'Companero Club']);
 
         $club = Club::create([
             'name' => 'Club Test',
@@ -360,12 +361,16 @@ class ClubManagementTest extends TestCase
 
         $trainer->update(['club_id' => $club->id]);
         $socorrista->update(['club_id' => $club->id]);
+        $companion->update(['club_id' => $club->id]);
 
         $response = $this
             ->actingAs($socorrista)
             ->get(route('dashboard'));
 
-        $response->assertOk();
+        $response
+            ->assertOk()
+            ->assertSee('Socorrista Actual')
+            ->assertSee('Companero Club');
     }
 
     public function test_socorrista_without_club_sees_dashboard(): void

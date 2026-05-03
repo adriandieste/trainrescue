@@ -147,7 +147,6 @@ class DashboardController extends Controller
             $clubmates = [];
             if ($user->club_id) {
                 $clubmates = $user->club->users()
-                    ->where('id', '!=', $user->id)
                     ->orderBy('name')
                     ->get()
                     ->map(fn (User $member) => [

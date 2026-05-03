@@ -1,6 +1,11 @@
 <script setup>
-import { ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { router, usePage } from '@inertiajs/vue3';
+
+const page = usePage();
+const currentUserId = computed(() => page.props.auth?.user?.id);
+
+// ...existing code...
 
 const props = defineProps({
     clubmates: {
@@ -93,7 +98,10 @@ function confirmLeave() {
                                 <div v-else class="h-10 w-10 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center font-semibold text-blue-600 text-sm">
                                     {{ getInitials(clubmate.name) }}
                                 </div>
-                                <p class="font-semibold text-gray-900">{{ clubmate.name }}</p>
+                                <p class="font-semibold text-gray-900">
+                                    {{ clubmate.name }}
+                                    <span v-if="clubmate.id === currentUserId" class="ml-1 text-xs font-normal text-blue-500">(yo)</span>
+                                </p>
                             </div>
                         </td>
                         <td class="px-6 py-4 text-gray-600">{{ clubmate.email }}</td>
