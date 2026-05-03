@@ -384,4 +384,33 @@ class ClubController extends Controller
     {
         return $role === 'entrenador' ? 'Entrenador' : 'Socorrista';
     }
+
+    /**
+     * Abandono voluntario del club por parte de un socorrista.
+     */
+    public function leave(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        if (! $user->club_id) {
+            return redirect()->route('dashboard')
+                ->with('error', 'No perteneces a ningún club.');
+        }
+
+        $club = $user->club;
+
+        if ($user->id === $club->admin_user_id) {
+            return redirect()->route('dashboard')
+                ->with('error', 'El administrador del club no puede abandonarlo. Debes disolver el club o transferir la administración.');
+        }
+
+        DB::transaction(function () use ($user) {
+            ClubInvitation::where('invited_user_id', $user->id)->delete();
+            ClubJoinRequest::where('user_id', $user->id)->delete();
+            $user->update(['club_id' => null]);
+        });
+
+        return redirect()->route('dashboard')
+            ->with('success', "Has abandonado el club {$club->name} correctamente.");
+    }
 }

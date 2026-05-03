@@ -14,6 +14,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Ruta de abandono voluntario disponible para cualquier usuario autenticado
+    Route::delete('/clubs/leave', [ClubController::class, 'leave'])->name('clubs.leave');
+
     Route::middleware('entrenador')->group(function () {
         Route::get('/clubs/create', [ClubController::class, 'crear'])->name('clubs.create');
         Route::post('/clubs', [ClubController::class, 'guardar'])->name('clubs.store');
