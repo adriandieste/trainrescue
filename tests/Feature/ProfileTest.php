@@ -82,7 +82,7 @@ class ProfileTest extends TestCase
         $owner = User::factory()->create([
             'name' => 'Usuario Propio',
             'email' => 'propio@example.com',
-            'rol' => 'atleta',
+            'rol' => 'socorrista',
             'club_id' => $clubA->id,
         ]);
 
@@ -101,11 +101,31 @@ class ProfileTest extends TestCase
             ->assertOk()
             ->assertSee('Usuario Propio')
             ->assertSee('propio@example.com')
-            ->assertSee('atleta')
+            ->assertSee('socorrista')
             ->assertSee('Club A')
             ->assertDontSee($other->name)
             ->assertDontSee($other->email)
             ->assertDontSee('Club B');
+    }
+
+    public function test_profile_normalizes_legacy_atleta_role_to_socorrista(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Usuario Legacy',
+            'email' => 'legacy@example.com',
+            'rol' => 'atleta',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->get('/profile');
+
+        $response
+            ->assertOk()
+            ->assertSee('Usuario Legacy')
+            ->assertSee('legacy@example.com')
+            ->assertSee('socorrista')
+            ->assertDontSee('Perfil de Atleta');
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged(): void

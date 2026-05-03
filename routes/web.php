@@ -20,7 +20,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/clubs/{club}/edit', [ClubController::class, 'editar'])->name('clubs.edit');
         Route::patch('/clubs/{club}', [ClubController::class, 'actualizar'])->name('clubs.update');
         Route::delete('/clubs/{club}', [ClubController::class, 'destroy'])->name('clubs.destroy');
-        Route::get('/clubs/members', [ClubController::class, 'members'])->name('clubs.members.index');
         Route::delete('/clubs/members/{user}', [ClubController::class, 'removeMember'])->name('clubs.members.remove');
         Route::patch('/clubs/members/{user}/role', [ClubController::class, 'updateRole'])->name('clubs.members.update-role');
         Route::post('/clubs/invitations', [ClubInvitationController::class, 'store'])->name('club-invitations.store');

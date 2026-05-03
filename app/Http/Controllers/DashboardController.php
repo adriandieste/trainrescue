@@ -56,7 +56,7 @@ class DashboardController extends Controller
 
                 if ($search !== '') {
                     $searchResults = User::query()
-                        ->where('rol', 'atleta')
+                        ->whereIn('rol', ['socorrista', 'atleta'])
                         ->where(fn ($q) => $q->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%"))
                         ->orderBy('name')
@@ -123,7 +123,7 @@ class DashboardController extends Controller
             ]);
         }
 
-        if ($user->rol === 'atleta') {
+        if (in_array($user->rol, ['socorrista', 'atleta'], true)) {
             $pendingInvitations = ClubInvitation::with(['club', 'inviter'])
                 ->where('invited_user_id', $user->id)
                 ->where('status', 'pending')

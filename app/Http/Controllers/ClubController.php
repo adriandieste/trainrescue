@@ -191,110 +191,6 @@ class ClubController extends Controller
         ]);
     }
 
-    /**
-     * Listado paginado de miembros y buscador de socorristas para invitar.
-     */
-    public function members(Request $request): Response
-    {
-        $club = $this->getManagedClub();
-        $search = trim((string) $request->query('search', ''));
-
-        $members = $club->users()
-            ->orderBy('name')
-            ->paginate(10)
-            ->through(fn (User $member) => [
-                'id' => $member->id,
-                'name' => $member->name,
-                'email' => $member->email,
-                'avatar_url' => $member->avatar ? asset('storage/' . $member->avatar) : null,
-                'role' => $member->rol,
-                'role_label' => $this->formatRoleLabel($member->rol),
-            ])
-            ->withQueryString();
-
-        $pendingInvitationUserIds = ClubInvitation::where('club_id', $club->id)
-            ->where('status', 'pending')
-            ->pluck('invited_user_id')
-            ->all();
-
-        $pendingJoinRequestUserIds = ClubJoinRequest::where('club_id', $club->id)
-            ->where('status', 'pending')
-            ->pluck('user_id')
-            ->all();
-
-        $searchResults = collect();
-
-        if ($search !== '') {
-            $searchResults = User::query()
-                ->where('rol', 'atleta')
-                ->where(function ($query) use ($search) {
-                    $query->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
-                })
-                ->orderBy('name')
-                ->limit(10)
-                ->get()
-                ->map(function (User $candidate) use ($club, $pendingInvitationUserIds, $pendingJoinRequestUserIds) {
-                    $statusLabel = 'Disponible';
-                    $canInvite = true;
-
-                    if ($candidate->club_id === $club->id) {
-                        $statusLabel = 'Ya pertenece a tu club';
-                        $canInvite = false;
-                    } elseif ($candidate->club_id !== null) {
-                        $statusLabel = 'Ya pertenece a otro club';
-                        $canInvite = false;
-                    } elseif (in_array($candidate->id, $pendingInvitationUserIds, true)) {
-                        $statusLabel = 'Invitación pendiente';
-                        $canInvite = false;
-                    } elseif (in_array($candidate->id, $pendingJoinRequestUserIds, true)) {
-                        $statusLabel = 'Solicitud pendiente';
-                        $canInvite = false;
-                    }
-
-                    return [
-                        'id' => $candidate->id,
-                        'name' => $candidate->name,
-                        'email' => $candidate->email,
-                        'avatar_url' => $candidate->avatar ? asset('storage/' . $candidate->avatar) : null,
-                        'can_invite' => $canInvite,
-                        'status_label' => $statusLabel,
-                    ];
-                })
-                ->values();
-        }
-
-        $pendingInvitations = ClubInvitation::with('invitedUser')
-            ->where('club_id', $club->id)
-            ->where('status', 'pending')
-            ->latest()
-            ->get()
-            ->map(fn (ClubInvitation $invitation) => [
-                'id' => $invitation->id,
-                'invited_user' => [
-                    'id' => $invitation->invitedUser->id,
-                    'name' => $invitation->invitedUser->name,
-                    'email' => $invitation->invitedUser->email,
-                    'avatar_url' => $invitation->invitedUser->avatar ? asset('storage/' . $invitation->invitedUser->avatar) : null,
-                ],
-                'status' => $invitation->status,
-                'created_at' => $invitation->created_at->diffForHumans(),
-            ]);
-
-        return Inertia::render('Clubes/Miembros', [
-            'club' => [
-                'id' => $club->id,
-                'name' => $club->name,
-                'admin_user_id' => $club->admin_user_id,
-            ],
-            'filters' => [
-                'search' => $search,
-            ],
-            'searchResults' => $searchResults,
-            'pendingInvitations' => $pendingInvitations,
-            'members' => $members,
-        ]);
-    }
 
     /**
      * Aceptar solicitud de unión (firmado para enlaces de email + autenticado para UI).
@@ -453,27 +349,35 @@ class ClubController extends Controller
         $club = $this->getManagedClub();
 
         $validated = $request->validate([
-            'rol' => ['required', Rule::in(['entrenador'])],
+            'rol' => ['required', Rule::in(['entrenador', 'socorrista'])],
         ]);
 
         if ($user->club_id !== $club->id) {
             abort(403, 'Este usuario no pertenece a tu club.');
         }
 
-        if ($user->id === $club->admin_user_id) {
+        // Impedir que el administrador principal se degrade a sí mismo
+        if ($user->id === $club->admin_user_id && $validated['rol'] === 'socorrista') {
             return redirect()->route('dashboard')
-                ->with('error', 'El administrador del club ya dispone de este rol.');
+                ->with('error', 'No puedes revocar el rol del administrador principal del club.');
         }
 
         if ($user->rol === $validated['rol']) {
+            $label = $validated['rol'] === 'entrenador' ? 'Entrenador' : 'Socorrista';
             return redirect()->route('dashboard')
-                ->with('error', "{$user->name} ya tiene el rol de Entrenador.");
+                ->with('error', "{$user->name} ya tiene el rol de {$label}.");
         }
 
         $user->update(['rol' => $validated['rol']]);
 
+        if ($validated['rol'] === 'entrenador') {
+            $mensaje = "{$user->name} ha sido promovido a Entrenador del club.";
+        } else {
+            $mensaje = "El rol de {$user->name} ha sido revertido a Socorrista.";
+        }
+
         return redirect()->route('dashboard')
-            ->with('success', "{$user->name} ha sido promovido a Entrenador del club.");
+            ->with('success', $mensaje);
     }
 
     private function formatRoleLabel(string $role): string

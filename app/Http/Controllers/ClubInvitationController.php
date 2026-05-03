@@ -22,18 +22,8 @@ class ClubInvitationController extends Controller
             'status'           => 'pending',
         ]);
 
-        $source = $request->input('source', 'members');
-        $search = trim((string) $request->input('search', ''));
-        $params = array_filter(['search' => $search ?: null]);
-
-        if ($source === 'dashboard') {
-            return redirect()
-                ->route('dashboard', $params)
-                ->with('success', 'Invitación enviada correctamente.');
-        }
-
         return redirect()
-            ->route('clubs.members.index', $params)
+            ->route('dashboard')
             ->with('success', 'Invitación enviada correctamente.');
     }
 

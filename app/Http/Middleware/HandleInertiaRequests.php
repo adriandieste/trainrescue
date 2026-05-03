@@ -50,7 +50,7 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
-        if (! $user || $user->rol !== 'atleta') {
+        if (! $user || ! in_array($user->rol, ['socorrista', 'atleta'], true)) {
             return [
                 'clubInvitations' => [],
                 'clubInvitationsCount' => 0,

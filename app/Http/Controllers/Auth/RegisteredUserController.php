@@ -43,7 +43,7 @@ class RegisteredUserController extends Controller
                 'regex:/[^a-zA-Z0-9]/',
                 'confirmed',
             ],
-            'rol' => ['required', 'string', 'in:atleta,entrenador'],
+            'rol' => ['required', 'string', 'in:socorrista,entrenador'],
         ], [
             'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
             'password.regex' => 'La contraseña debe incluir mayúsculas, minúsculas, números y símbolos.',
