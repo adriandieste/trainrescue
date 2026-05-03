@@ -25,7 +25,7 @@ class ClubInvitationManagementTest extends TestCase
 
         $trainer->update(['club_id' => $club->id]);
 
-        $athlete = User::factory()->create(['rol' => 'atleta']);
+        $athlete = User::factory()->create(['rol' => 'socorrista']);
 
         $response = $this
             ->actingAs($trainer)
@@ -56,7 +56,7 @@ class ClubInvitationManagementTest extends TestCase
 
         $trainer->update(['club_id' => $club->id]);
 
-        $athlete = User::factory()->create(['rol' => 'atleta']);
+        $athlete = User::factory()->create(['rol' => 'socorrista']);
 
         ClubInvitation::create([
             'club_id' => $club->id,
@@ -95,7 +95,7 @@ class ClubInvitationManagementTest extends TestCase
 
         $trainer->update(['club_id' => $club->id]);
 
-        $athlete = User::factory()->create(['rol' => 'atleta']);
+        $athlete = User::factory()->create(['rol' => 'socorrista']);
 
         ClubInvitation::create([
             'club_id' => $club->id,
@@ -118,7 +118,7 @@ class ClubInvitationManagementTest extends TestCase
     public function test_athlete_can_accept_invitation_and_join_club(): void
     {
         $trainer = User::factory()->create(['rol' => 'entrenador']);
-        $athlete = User::factory()->create(['rol' => 'atleta']);
+        $athlete = User::factory()->create(['rol' => 'socorrista']);
 
         $club = Club::create([
             'name' => 'Club Aceptado',
@@ -171,7 +171,7 @@ class ClubInvitationManagementTest extends TestCase
     public function test_athlete_can_reject_invitation_without_joining_a_club(): void
     {
         $trainer = User::factory()->create(['rol' => 'entrenador']);
-        $athlete = User::factory()->create(['rol' => 'atleta']);
+        $athlete = User::factory()->create(['rol' => 'socorrista']);
 
         $club = Club::create([
             'name' => 'Club Rechazado',
