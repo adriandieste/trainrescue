@@ -378,4 +378,104 @@ class ClubManagementTest extends TestCase
 
         $response->assertOk();
     }
+
+    public function test_socorrista_can_leave_a_club(): void
+    {
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+        $socorrista = User::factory()->create(['rol' => 'socorrista']);
+
+        $club = Club::create([
+            'name' => 'Club Abandono',
+            'admin_user_id' => $trainer->id,
+        ]);
+
+        $trainer->update(['club_id' => $club->id]);
+        $socorrista->update(['club_id' => $club->id]);
+
+        $response = $this
+            ->actingAs($socorrista)
+            ->delete(route('clubs.leave'));
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('dashboard'));
+
+        $this->assertDatabaseHas('users', [
+            'id' => $socorrista->id,
+            'club_id' => null,
+        ]);
+    }
+
+    public function test_leaving_club_removes_pending_invitations(): void
+    {
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+        $socorrista = User::factory()->create(['rol' => 'socorrista']);
+
+        $club = Club::create([
+            'name' => 'Club Invitaciones',
+            'admin_user_id' => $trainer->id,
+        ]);
+        $otherClub = Club::create([
+            'name' => 'Otro Club',
+            'admin_user_id' => $trainer->id,
+        ]);
+
+        $trainer->update(['club_id' => $club->id]);
+        $socorrista->update(['club_id' => $club->id]);
+
+        \App\Models\ClubInvitation::create([
+            'club_id' => $otherClub->id,
+            'inviter_user_id' => $trainer->id,
+            'invited_user_id' => $socorrista->id,
+            'status' => 'pending',
+        ]);
+
+        $response = $this
+            ->actingAs($socorrista)
+            ->delete(route('clubs.leave'));
+
+        $response->assertRedirect(route('dashboard'));
+
+        $this->assertDatabaseMissing('club_invitations', [
+            'invited_user_id' => $socorrista->id,
+        ]);
+    }
+
+    public function test_admin_trainer_cannot_leave_their_own_club(): void
+    {
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+
+        $club = Club::create([
+            'name' => 'Club Admin',
+            'admin_user_id' => $trainer->id,
+        ]);
+
+        $trainer->update(['club_id' => $club->id]);
+
+        $response = $this
+            ->actingAs($trainer)
+            ->delete(route('clubs.leave'));
+
+        $response
+            ->assertRedirect(route('dashboard'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $trainer->id,
+            'club_id' => $club->id,
+        ]);
+    }
+
+    public function test_user_without_club_gets_error_when_leaving(): void
+    {
+        $socorrista = User::factory()->create(['rol' => 'socorrista']);
+
+        $response = $this
+            ->actingAs($socorrista)
+            ->delete(route('clubs.leave'));
+
+        $response
+            ->assertRedirect(route('dashboard'))
+            ->assertSessionHas('error');
+    }
 }
