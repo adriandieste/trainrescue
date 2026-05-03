@@ -81,6 +81,69 @@ class ExerciseLibraryTest extends TestCase
             ->assertSee('Activo')
             ->assertDontSee('Inactivo');
     }
+
+    public function test_trainer_can_create_custom_exercise(): void
+    {
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+
+        $response = $this
+            ->actingAs($trainer)
+            ->post(route('exercises.custom.store'), [
+                'name' => 'Rescate combinado entrenador',
+                'description' => 'Trabajo tecnico de aproximacion y remolque.',
+                'materials' => "maniqui\ntubo de rescate",
+                'video_url' => 'https://example.com/video',
+            ]);
+
+        $response
+            ->assertRedirect(route('exercises.library'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('custom_exercises', [
+            'user_id' => $trainer->id,
+            'name' => 'Rescate combinado entrenador',
+            'description' => 'Trabajo tecnico de aproximacion y remolque.',
+            'video_url' => 'https://example.com/video',
+        ]);
+    }
+
+    public function test_custom_exercise_requires_name_and_description(): void
+    {
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+
+        $response = $this
+            ->actingAs($trainer)
+            ->from(route('exercises.library'))
+            ->post(route('exercises.custom.store'), [
+                'name' => '',
+                'description' => '',
+                'materials' => 'tabla',
+            ]);
+
+        $response
+            ->assertRedirect(route('exercises.library'))
+            ->assertSessionHasErrors(['name', 'description']);
+    }
+
+    public function test_custom_exercise_is_private_per_trainer(): void
+    {
+        $trainerA = User::factory()->create(['rol' => 'entrenador']);
+        $trainerB = User::factory()->create(['rol' => 'entrenador']);
+
+        $this->actingAs($trainerA)->post(route('exercises.custom.store'), [
+            'name' => 'Privado A',
+            'description' => 'Solo A',
+            'materials' => 'maniqui',
+        ]);
+
+        $response = $this
+            ->actingAs($trainerB)
+            ->get(route('exercises.library'));
+
+        $response
+            ->assertOk()
+            ->assertDontSee('Privado A');
+    }
 }
 
 

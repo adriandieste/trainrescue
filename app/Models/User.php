@@ -61,4 +61,9 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(ClubInvitation::class, 'invited_user_id');
     }
+
+    public function customExercises(): HasMany
+    {
+        return $this->hasMany(CustomExercise::class);
+    }
 }
