@@ -5,6 +5,9 @@ namespace Tests\Feature;
 use App\Models\PredefinedExercise;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 use Tests\TestCase;
 
 class ExerciseLibraryTest extends TestCase
@@ -143,6 +146,146 @@ class ExerciseLibraryTest extends TestCase
         $response
             ->assertOk()
             ->assertDontSee('Privado A');
+    }
+
+    public function test_trainer_can_update_own_custom_exercise(): void
+    {
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+
+        $this->actingAs($trainer)->post(route('exercises.custom.store'), [
+            'name' => 'Ejercicio base',
+            'description' => 'Descripcion base',
+            'materials' => 'tabla',
+        ]);
+
+        $exerciseId = DB::table('custom_exercises')->where('user_id', $trainer->id)->value('id');
+
+        $response = $this
+            ->actingAs($trainer)
+            ->patch(route('exercises.custom.update', $exerciseId), [
+                'name' => 'Ejercicio actualizado',
+                'description' => 'Descripcion actualizada',
+                'materials' => 'aletas, tubo',
+                'video_url' => 'https://example.com/editado',
+            ]);
+
+        $response
+            ->assertRedirect(route('exercises.library'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('custom_exercises', [
+            'id' => $exerciseId,
+            'name' => 'Ejercicio actualizado',
+            'description' => 'Descripcion actualizada',
+            'video_url' => 'https://example.com/editado',
+        ]);
+    }
+
+    public function test_trainer_cannot_update_another_trainers_exercise(): void
+    {
+        $owner = User::factory()->create(['rol' => 'entrenador']);
+        $intruder = User::factory()->create(['rol' => 'entrenador']);
+
+        $this->actingAs($owner)->post(route('exercises.custom.store'), [
+            'name' => 'Privado propietario',
+            'description' => 'No editable por terceros',
+            'materials' => 'tabla',
+        ]);
+
+        $exerciseId = DB::table('custom_exercises')->where('user_id', $owner->id)->value('id');
+
+        $response = $this
+            ->actingAs($intruder)
+            ->patch(route('exercises.custom.update', $exerciseId), [
+                'name' => 'Intento intruso',
+                'description' => 'Intento intruso',
+                'materials' => 'x',
+            ]);
+
+        $response->assertForbidden();
+    }
+
+    public function test_trainer_can_soft_delete_own_custom_exercise(): void
+    {
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+
+        $this->actingAs($trainer)->post(route('exercises.custom.store'), [
+            'name' => 'Borrable',
+            'description' => 'Se eliminara',
+            'materials' => 'tabla',
+        ]);
+
+        $exerciseId = DB::table('custom_exercises')->where('user_id', $trainer->id)->value('id');
+
+        $response = $this
+            ->actingAs($trainer)
+            ->delete(route('exercises.custom.destroy', $exerciseId));
+
+        $response
+            ->assertRedirect(route('exercises.library'))
+            ->assertSessionHas('success');
+
+        $this->assertSoftDeleted('custom_exercises', [
+            'id' => $exerciseId,
+        ]);
+    }
+
+    public function test_trainer_cannot_delete_another_trainers_exercise(): void
+    {
+        $owner = User::factory()->create(['rol' => 'entrenador']);
+        $intruder = User::factory()->create(['rol' => 'entrenador']);
+
+        $this->actingAs($owner)->post(route('exercises.custom.store'), [
+            'name' => 'No borrable por terceros',
+            'description' => 'Privado',
+            'materials' => 'tabla',
+        ]);
+
+        $exerciseId = DB::table('custom_exercises')->where('user_id', $owner->id)->value('id');
+
+        $response = $this
+            ->actingAs($intruder)
+            ->delete(route('exercises.custom.destroy', $exerciseId));
+
+        $response->assertForbidden();
+    }
+
+    public function test_delete_warns_when_custom_exercise_is_used_in_workout(): void
+    {
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+
+        $this->actingAs($trainer)->post(route('exercises.custom.store'), [
+            'name' => 'En uso',
+            'description' => 'Vinculado a entreno',
+            'materials' => 'tabla',
+        ]);
+
+        $exerciseId = DB::table('custom_exercises')->where('user_id', $trainer->id)->value('id');
+
+        Schema::create('workout_exercises', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('custom_exercise_id');
+            $table->timestamps();
+        });
+
+        DB::table('workout_exercises')->insert([
+            'custom_exercise_id' => $exerciseId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this
+            ->actingAs($trainer)
+            ->delete(route('exercises.custom.destroy', $exerciseId));
+
+        $response
+            ->assertRedirect(route('exercises.library'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('custom_exercises', [
+            'id' => $exerciseId,
+            'deleted_at' => null,
+        ]);
     }
 }
 
