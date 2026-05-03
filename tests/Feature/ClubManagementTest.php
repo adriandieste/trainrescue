@@ -256,5 +256,96 @@ class ClubManagementTest extends TestCase
 
         $this->assertDatabaseHas('clubs', ['id' => $club->id]);
     }
+
+    public function test_admin_can_promote_a_club_member_to_trainer(): void
+    {
+        $admin = User::factory()->create(['rol' => 'entrenador']);
+        $member = User::factory()->create(['rol' => 'atleta']);
+
+        $club = Club::create([
+            'name' => 'Club Promocion',
+            'admin_user_id' => $admin->id,
+        ]);
+
+        $admin->update(['club_id' => $club->id]);
+        $member->update(['club_id' => $club->id]);
+
+        $response = $this
+            ->actingAs($admin)
+            ->patch(route('clubs.members.update-role', $member), [
+                'rol' => 'entrenador',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('dashboard'));
+
+        $this->assertDatabaseHas('users', [
+            'id' => $member->id,
+            'rol' => 'entrenador',
+            'club_id' => $club->id,
+        ]);
+    }
+
+    public function test_non_admin_trainer_cannot_promote_members(): void
+    {
+        $admin = User::factory()->create(['rol' => 'entrenador']);
+        $otherTrainer = User::factory()->create(['rol' => 'entrenador']);
+        $member = User::factory()->create(['rol' => 'atleta']);
+
+        $club = Club::create([
+            'name' => 'Club Permisos',
+            'admin_user_id' => $admin->id,
+        ]);
+
+        $admin->update(['club_id' => $club->id]);
+        $otherTrainer->update(['club_id' => $club->id]);
+        $member->update(['club_id' => $club->id]);
+
+        $response = $this
+            ->actingAs($otherTrainer)
+            ->patch(route('clubs.members.update-role', $member), [
+                'rol' => 'entrenador',
+            ]);
+
+        $response->assertForbidden();
+
+        $this->assertDatabaseHas('users', [
+            'id' => $member->id,
+            'rol' => 'atleta',
+        ]);
+    }
+
+    public function test_admin_cannot_promote_user_from_another_club(): void
+    {
+        $admin = User::factory()->create(['rol' => 'entrenador']);
+        $otherClubMember = User::factory()->create(['rol' => 'atleta']);
+
+        $club = Club::create([
+            'name' => 'Club Admin',
+            'admin_user_id' => $admin->id,
+        ]);
+
+        $anotherClub = Club::create([
+            'name' => 'Club Externo',
+        ]);
+
+        $admin->update(['club_id' => $club->id]);
+        $otherClubMember->update(['club_id' => $anotherClub->id]);
+
+        $response = $this
+            ->actingAs($admin)
+            ->patch(route('clubs.members.update-role', $otherClubMember), [
+                'rol' => 'entrenador',
+            ]);
+
+        $response->assertForbidden();
+
+        $this->assertDatabaseHas('users', [
+            'id' => $otherClubMember->id,
+            'rol' => 'atleta',
+        ]);
+    }
+
 }
 

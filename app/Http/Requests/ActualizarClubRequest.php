@@ -6,7 +6,7 @@ use App\Models\Club;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateClubRequest extends FormRequest
+class ActualizarClubRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -53,4 +53,3 @@ class UpdateClubRequest extends FormRequest
         ];
     }
 }
-

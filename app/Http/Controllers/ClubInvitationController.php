@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreClubInvitationRequest;
+use App\Http\Requests\GuardarInvitacionClubRequest;
 use App\Models\ClubInvitation;
 use App\Models\ClubJoinRequest;
 use App\Models\User;
@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class ClubInvitationController extends Controller
 {
-    public function store(StoreClubInvitationRequest $request): RedirectResponse
+    public function store(GuardarInvitacionClubRequest $request): RedirectResponse
     {
         $trainer = $request->user();
 
@@ -76,5 +76,3 @@ class ClubInvitationController extends Controller
             ->with('success', 'Invitación rechazada correctamente.');
     }
 }
-
-

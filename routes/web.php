@@ -15,17 +15,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::middleware('entrenador')->group(function () {
-        Route::get('/clubs/create', [ClubController::class, 'create'])->name('clubs.create');
-        Route::post('/clubs', [ClubController::class, 'store'])->name('clubs.store');
-        Route::get('/clubs/{club}/edit', [ClubController::class, 'edit'])->name('clubs.edit');
-        Route::patch('/clubs/{club}', [ClubController::class, 'update'])->name('clubs.update');
+        Route::get('/clubs/create', [ClubController::class, 'crear'])->name('clubs.create');
+        Route::post('/clubs', [ClubController::class, 'guardar'])->name('clubs.store');
+        Route::get('/clubs/{club}/edit', [ClubController::class, 'editar'])->name('clubs.edit');
+        Route::patch('/clubs/{club}', [ClubController::class, 'actualizar'])->name('clubs.update');
         Route::delete('/clubs/{club}', [ClubController::class, 'destroy'])->name('clubs.destroy');
         Route::get('/clubs/members', [ClubController::class, 'members'])->name('clubs.members.index');
         Route::delete('/clubs/members/{user}', [ClubController::class, 'removeMember'])->name('clubs.members.remove');
+        Route::patch('/clubs/members/{user}/role', [ClubController::class, 'updateRole'])->name('clubs.members.update-role');
         Route::post('/clubs/invitations', [ClubInvitationController::class, 'store'])->name('club-invitations.store');
 
-        Route::get('/clubs/available', [ClubController::class, 'getAvailableClubs'])->name('clubs.available');
-        Route::post('/clubs/join-request', [ClubController::class, 'joinRequest'])->name('clubs.join-request');
+        Route::get('/clubs/available', [ClubController::class, 'obtenerClubesDisponibles'])->name('clubs.available');
+        Route::post('/clubs/join-request', [ClubController::class, 'solicitarUnion'])->name('clubs.join-request');
 
         Route::get('/clubs/join-requests', [ClubController::class, 'joinRequests'])->name('clubs.join-requests.index');
         Route::post('/clubs/join-requests/{joinRequest}/accept', [ClubController::class, 'acceptJoinRequest'])->name('clubs.join-requests.accept');

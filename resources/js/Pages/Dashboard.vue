@@ -1,8 +1,9 @@
 <script setup>
+import Dropdown from '@/Components/Dropdown.vue';
 import GeneralLayout from '@/Layouts/GeneralLayout.vue';
 import { Head, usePage, Link, useForm, router } from '@inertiajs/vue3';
 import { ref, computed, onMounted } from 'vue';
-import DeleteClubForm from '@/Pages/Clubs/Partials/DeleteClubForm.vue';
+import DeleteClubForm from '@/Pages/Clubes/Partials/FormularioEliminarClub.vue';
 
 const props = defineProps({
     members:            { type: Object, default: null },
@@ -103,6 +104,38 @@ function initials(name) {
 }
 const memberToRemove = ref(null);
 const isRemoving = ref(false);
+const memberToPromote = ref(null);
+const isPromoting = ref(false);
+const promotingMemberId = ref(null);
+
+function confirmPromote(member) {
+    if (!member || member.role === 'entrenador') return;
+
+    memberToPromote.value = member;
+}
+
+function cancelPromote() {
+    memberToPromote.value = null;
+}
+
+function promoteMember() {
+    if (!memberToPromote.value) return;
+
+    isPromoting.value = true;
+    promotingMemberId.value = memberToPromote.value.id;
+
+    router.patch(route('clubs.members.update-role', memberToPromote.value.id), {
+        rol: 'entrenador',
+    }, {
+        preserveScroll: true,
+        onFinish: () => {
+            isPromoting.value = false;
+            promotingMemberId.value = null;
+            memberToPromote.value = null;
+        },
+    });
+}
+
 function confirmRemove(member) {
     memberToRemove.value = member;
 }
@@ -321,17 +354,51 @@ function removeMember() {
                                         <td class="whitespace-nowrap px-4 py-4 text-sm text-gray-600">{{ member.email }}</td>
                                         <td class="whitespace-nowrap px-4 py-4 text-sm text-gray-700">{{ member.role_label }}</td>
                                         <td class="whitespace-nowrap px-4 py-4 text-sm">
-                                            <button
+                                            <Dropdown
                                                 v-if="member.id !== currentClub.admin_user_id"
-                                                type="button"
-                                                class="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
-                                                @click="confirmRemove(member)"
+                                                align="right"
+                                                width="48"
+                                                content-classes="py-2 bg-white"
                                             >
-                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M22 10.5h-6m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM4 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 10.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
-                                                </svg>
-                                                Expulsar
-                                            </button>
+                                                <template #trigger>
+                                                    <button
+                                                        type="button"
+                                                        class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:bg-gray-50 hover:text-gray-700"
+                                                    >
+                                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 6a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 6a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" />
+                                                        </svg>
+                                                    </button>
+                                                </template>
+
+                                                <template #content>
+                                                    <button
+                                                        type="button"
+                                                        class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                                        :disabled="promotingMemberId === member.id || member.role === 'entrenador'"
+                                                        @click="confirmPromote(member)"
+                                                    >
+                                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9A2.25 2.25 0 0 1 5.25 16.5v-9A2.25 2.25 0 0 1 7.5 5.25h5.379a2.25 2.25 0 0 1 1.591.659l3.621 3.621a2.25 2.25 0 0 1 .659 1.591V16.5a2.25 2.25 0 0 1-2.25 2.25Z" />
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75h6m-3-3v6" />
+                                                        </svg>
+                                                        <span v-if="promotingMemberId === member.id">Promoviendo...</span>
+                                                        <span v-else-if="member.role === 'entrenador'">Ya es entrenador</span>
+                                                        <span v-else>Promover a Entrenador</span>
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
+                                                        @click="confirmRemove(member)"
+                                                    >
+                                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M22 10.5h-6m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM4 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 10.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
+                                                        </svg>
+                                                        Expulsar
+                                                    </button>
+                                                </template>
+                                            </Dropdown>
                                             <span v-else class="text-xs text-gray-400 italic">Admin</span>
                                         </td>
                                     </tr>
@@ -518,6 +585,52 @@ function removeMember() {
                             >
                                 <span v-if="isRemoving">Expulsando...</span>
                                 <span v-else>Sí, expulsar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
+
+        <Teleport to="body">
+            <Transition
+                enter-active-class="transition ease-out duration-200"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="transition ease-in duration-150"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+            >
+                <div v-if="memberToPromote" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="cancelPromote" />
+                    <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                        <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+                            <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M18 9.75V6.75A2.25 2.25 0 0 0 15.75 4.5h-7.5A2.25 2.25 0 0 0 6 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 17.25v-3m-6-2.25h7.5m0 0-2.25-2.25M19.5 12l-2.25 2.25" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900">Confirmar promoción</h3>
+                        <p class="mt-2 text-sm text-gray-600">
+                            ¿Quieres promover a
+                            <strong class="text-gray-900">{{ memberToPromote.name }}</strong>
+                            para que pase a ser Entrenador del club? Tendrá acceso inmediato a las herramientas de gestión disponibles para este rol.
+                        </p>
+                        <div class="mt-6 flex gap-3">
+                            <button
+                                type="button"
+                                class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                                @click="cancelPromote"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                class="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+                                :disabled="isPromoting"
+                                @click="promoteMember"
+                            >
+                                <span v-if="isPromoting">Promoviendo...</span>
+                                <span v-else>Sí, promover</span>
                             </button>
                         </div>
                     </div>
