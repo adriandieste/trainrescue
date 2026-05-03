@@ -10,7 +10,7 @@ use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
-class StoreClubInvitationRequest extends FormRequest
+class GuardarInvitacionClubRequest extends FormRequest
 {
     public function authorize(): bool
     {

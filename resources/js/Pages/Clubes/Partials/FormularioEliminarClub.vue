@@ -13,37 +13,37 @@ const props = defineProps({
         required: true,
     },
 });
-const confirmingDeletion = ref(false);
-const confirmNameInput = ref(null);
+const confirmandoEliminacion = ref(false);
+const inputConfirmacionNombre = ref(null);
 const form = useForm({
     confirm_name: '',
 });
-const nameMatches = computed(
+const nombreCoincide = computed(
     () => form.confirm_name === props.club.name
 );
-const openModal = () => {
-    confirmingDeletion.value = true;
-    nextTick(() => confirmNameInput.value?.focus());
+const abrirModal = () => {
+    confirmandoEliminacion.value = true;
+    nextTick(() => inputConfirmacionNombre.value?.focus());
 };
-const dissolveClub = () => {
-    if (!nameMatches.value) return;
+const disolverClub = () => {
+    if (!nombreCoincide.value) return;
 
     form.delete(route('clubs.destroy', { club: props.club.id }), {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
-        onError: () => nextTick(() => confirmNameInput.value?.focus()),
+        onSuccess: () => cerrarModal(),
+        onError: () => nextTick(() => inputConfirmacionNombre.value?.focus()),
     });
 };
-const closeModal = () => {
-    confirmingDeletion.value = false;
+const cerrarModal = () => {
+    confirmandoEliminacion.value = false;
     form.clearErrors();
     form.reset();
 };
 </script>
 <template>
     <section>
-        <DangerButton @click="openModal">Eliminar club</DangerButton>
-        <Modal :show="confirmingDeletion" max-width="lg" @close="closeModal">
+        <DangerButton @click="abrirModal">Eliminar club</DangerButton>
+        <Modal :show="confirmandoEliminacion" max-width="lg" @close="cerrarModal">
             <div class="p-6">
                 <div class="flex items-center gap-3 mb-4">
                     <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
@@ -68,26 +68,26 @@ const closeModal = () => {
                     <InputLabel for="confirm_name" value="Nombre del club" class="sr-only" />
                     <TextInput
                         id="confirm_name"
-                        ref="confirmNameInput"
+                        ref="inputConfirmacionNombre"
                         v-model="form.confirm_name"
                         type="text"
                         class="mt-1 block w-full"
                         :placeholder="club.name"
-                        @keyup.enter="dissolveClub"
+                        @keyup.enter="disolverClub"
                     />
                     <InputError :message="form.errors.confirm_name" class="mt-2" />
-                    <p v-if="form.confirm_name && !nameMatches" class="mt-1 text-xs text-red-500">
+                    <p v-if="form.confirm_name && !nombreCoincide" class="mt-1 text-xs text-red-500">
                         El nombre no coincide.
                     </p>
                 </div>
                 <div class="mt-6 flex justify-end gap-3">
-                    <SecondaryButton @click="closeModal">
+                    <SecondaryButton @click="cerrarModal">
                         Cancelar
                     </SecondaryButton>
                     <DangerButton
-                        :class="{ 'opacity-25 cursor-not-allowed': !nameMatches || form.processing }"
-                        :disabled="!nameMatches || form.processing"
-                        @click="dissolveClub"
+                        :class="{ 'opacity-25 cursor-not-allowed': !nombreCoincide || form.processing }"
+                        :disabled="!nombreCoincide || form.processing"
+                        @click="disolverClub"
                     >
                         {{ form.processing ? 'Eliminando...' : 'Sí, eliminar el club' }}
                     </DangerButton>

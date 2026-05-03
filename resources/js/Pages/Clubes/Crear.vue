@@ -1,5 +1,5 @@
 <script setup>
-import ClubForm from '@/Pages/Clubs/Partials/ClubForm.vue';
+import FormularioClub from '@/Pages/Clubes/Partials/FormularioClub.vue';
 import GeneralLayout from '@/Layouts/GeneralLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 
@@ -9,7 +9,7 @@ const form = useForm({
     logo: null,
 });
 
-function submit() {
+function enviarFormulario() {
     form.post(route('clubs.store'), {
         forceFormData: true,
         preserveScroll: true,
@@ -29,13 +29,13 @@ function submit() {
 
         <div class="py-12">
             <div class="mx-auto max-w-2xl sm:px-6 lg:px-8">
-                <ClubForm
+                <FormularioClub
                     :form="form"
                     intro="Completa el formulario para registrar tu club deportivo. Podrás gestionar tus socorristas y planificar sus entrenamientos."
                     submit-label="Crear Club"
                     processing-label="Creando..."
                     success-message="✓ Club creado exitosamente."
-                    @submit="submit"
+                    @submit="enviarFormulario"
                 />
             </div>
         </div>

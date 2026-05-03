@@ -9,29 +9,29 @@ defineProps({
 });
 
 const flash = computed(() => usePage().props.flash ?? {});
-const processingId = ref(null);
-const processingAction = ref(null);
+const idProcesando = ref(null);
+const accionProcesando = ref(null);
 
-function acceptRequest(id) {
-    processingId.value = id;
-    processingAction.value = 'accept';
+function aceptarSolicitud(id) {
+    idProcesando.value = id;
+    accionProcesando.value = 'accept';
 
     router.post(route('clubs.join-requests.accept', { joinRequest: id }), {}, {
         onFinish: () => {
-            processingId.value = null;
-            processingAction.value = null;
+            idProcesando.value = null;
+            accionProcesando.value = null;
         },
     });
 }
 
-function rejectRequest(id) {
-    processingId.value = id;
-    processingAction.value = 'reject';
+function rechazarSolicitud(id) {
+    idProcesando.value = id;
+    accionProcesando.value = 'reject';
 
     router.post(route('clubs.join-requests.reject', { joinRequest: id }), {}, {
         onFinish: () => {
-            processingId.value = null;
-            processingAction.value = null;
+            idProcesando.value = null;
+            accionProcesando.value = null;
         },
     });
 }
@@ -114,19 +114,19 @@ function rejectRequest(id) {
 
                             <div class="flex shrink-0 items-center gap-2">
                                 <button
-                                    :disabled="processingId === request.id"
+                                    :disabled="idProcesando === request.id"
                                     class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
-                                    @click="rejectRequest(request.id)"
+                                    @click="rechazarSolicitud(request.id)"
                                 >
                                     Rechazar
                                 </button>
 
                                 <button
-                                    :disabled="processingId === request.id"
+                                    :disabled="idProcesando === request.id"
                                     class="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700 disabled:opacity-50"
-                                    @click="acceptRequest(request.id)"
+                                    @click="aceptarSolicitud(request.id)"
                                 >
-                                    <span v-if="processingId === request.id && processingAction === 'accept'">Procesando...</span>
+                                    <span v-if="idProcesando === request.id && accionProcesando === 'accept'">Procesando...</span>
                                     <span v-else>Aceptar</span>
                                 </button>
                             </div>
