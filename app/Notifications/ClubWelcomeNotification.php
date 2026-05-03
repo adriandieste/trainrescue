@@ -29,7 +29,7 @@ class ClubWelcomeNotification extends Notification
                 'userName'         => $notifiable->name,
                 'clubName'         => $this->club->name,
                 'clubDescription'  => $this->club->description,
-                'adminName'        => $this->club->admin?->name ?? 'el entrenador',
+                'adminName'        => $this->club->administrador?->name ?? 'el entrenador',
                 'dashboardUrl'     => URL::to(route('dashboard')),
             ]);
     }

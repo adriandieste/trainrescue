@@ -24,15 +24,15 @@ const form = useForm({
     avatar: null,
 });
 
-const avatarPreview = ref(null);
+const previsualizacionAvatar = ref(null);
 
-const currentAvatarUrl = computed(() => {
+const urlAvatarActual = computed(() => {
     return user.value.avatar ? `/storage/${user.value.avatar}` : null;
 });
 
-const displayAvatar = computed(() => avatarPreview.value || currentAvatarUrl.value);
+const avatarMostrado = computed(() => previsualizacionAvatar.value || urlAvatarActual.value);
 
-const userInitials = computed(() => {
+const inicialesUsuario = computed(() => {
     return user.value.name
         .split(' ')
         .map((n) => n[0])
@@ -41,7 +41,7 @@ const userInitials = computed(() => {
         .slice(0, 2);
 });
 
-function onAvatarChange(event) {
+function alCambiarAvatar(event) {
     const file = event.target.files[0];
     if (!file) return;
 
@@ -49,16 +49,16 @@ function onAvatarChange(event) {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-        avatarPreview.value = e.target.result;
+        previsualizacionAvatar.value = e.target.result;
     };
     reader.readAsDataURL(file);
 }
 
-function submit() {
+function enviarFormulario() {
     form.post(route('profile.update'), {
         preserveScroll: true,
         onSuccess: () => {
-            avatarPreview.value = null;
+            previsualizacionAvatar.value = null;
             form.avatar = null;
         },
     });
@@ -77,7 +77,7 @@ function submit() {
             </p>
         </header>
 
-        <form @submit.prevent="submit" class="mt-6 space-y-6" enctype="multipart/form-data">
+        <form @submit.prevent="enviarFormulario" class="mt-6 space-y-6" enctype="multipart/form-data">
 
             <div>
                 <InputLabel value="Foto de perfil" />
@@ -85,12 +85,12 @@ function submit() {
                 <div class="mt-2 flex items-center gap-4">
                     <div class="h-20 w-20 shrink-0 overflow-hidden rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-semibold text-xl">
                         <img
-                            v-if="displayAvatar"
-                            :src="displayAvatar"
+                            v-if="avatarMostrado"
+                            :src="avatarMostrado"
                             alt="Avatar"
                             class="h-full w-full object-cover"
                         />
-                        <span v-else>{{ userInitials }}</span>
+                        <span v-else>{{ inicialesUsuario }}</span>
                     </div>
 
                     <div class="flex flex-col gap-2">
@@ -105,7 +105,7 @@ function submit() {
                             type="file"
                             class="sr-only"
                             accept="image/jpeg,image/png,image/webp"
-                            @change="onAvatarChange"
+                            @change="alCambiarAvatar"
                         />
                         <p class="text-xs text-gray-500">JPG, PNG o WebP · máx. 2 MB</p>
                     </div>

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreClubRequest;
-use App\Http\Requests\JoinClubRequest;
-use App\Http\Requests\UpdateClubRequest;
+use App\Http\Requests\GuardarClubRequest;
+use App\Http\Requests\SolicitudUnionClubRequest;
+use App\Http\Requests\ActualizarClubRequest;
 use App\Models\Club;
 use App\Models\ClubInvitation;
 use App\Models\ClubJoinRequest;
@@ -24,19 +24,19 @@ class ClubController extends Controller
     /**
      * Show the form for creating a new club.
      */
-    public function create(): Response
+    public function crear(): Response
     {
-        return Inertia::render('Clubs/Create');
+        return Inertia::render('Clubes/Crear');
     }
 
     /**
      * Show the form for editing the specified club.
      */
-    public function edit(Club $club): Response
+    public function editar(Club $club): Response
     {
-        $this->authorizeClubAdministration($club);
+        $this->autorizarAdministracionClub($club);
 
-        return Inertia::render('Clubs/Edit', [
+        return Inertia::render('Clubes/Editar', [
             'club' => [
                 'id' => $club->id,
                 'name' => $club->name,
@@ -51,7 +51,7 @@ class ClubController extends Controller
     /**
      * Store a newly created club in storage.
      */
-    public function store(StoreClubRequest $request): RedirectResponse
+    public function guardar(GuardarClubRequest $request): RedirectResponse
     {
         $validated = $request->validated();
         $validated['admin_user_id'] = $request->user()->id;
@@ -72,7 +72,7 @@ class ClubController extends Controller
     /**
      * Update the specified club in storage.
      */
-    public function update(UpdateClubRequest $request, Club $club): RedirectResponse
+    public function actualizar(ActualizarClubRequest $request, Club $club): RedirectResponse
     {
         $validated = $request->safe()->only(['name', 'description']);
         $oldLogoPath = $club->logo_path;
@@ -95,7 +95,7 @@ class ClubController extends Controller
     /**
      * Get available clubs for joining (sin club admin).
      */
-    public function getAvailableClubs(): JsonResponse
+    public function obtenerClubesDisponibles(): JsonResponse
     {
         $clubs = Club::all()->map(function ($club) {
             return [
@@ -113,39 +113,39 @@ class ClubController extends Controller
     /**
      * Store a join request for a club.
      */
-    public function joinRequest(JoinClubRequest $request): RedirectResponse
+    public function solicitarUnion(SolicitudUnionClubRequest $request): RedirectResponse
     {
         $validated = $request->validated();
 
-        $existingRequest = ClubJoinRequest::where('user_id', $request->user()->id)
+        $solicitudExistente = ClubJoinRequest::where('user_id', $request->user()->id)
             ->where('club_id', $validated['club_id'])
             ->first();
 
-        if ($existingRequest) {
-            if ($existingRequest->status === 'pending') {
+        if ($solicitudExistente) {
+            if ($solicitudExistente->status === 'pending') {
                 return back()->with('error', 'Ya tienes una solicitud pendiente para este club.');
             }
-            if ($existingRequest->status === 'accepted') {
+            if ($solicitudExistente->status === 'accepted') {
                 return back()->with('error', 'Ya eres miembro de este club.');
             }
-            $existingRequest->update([
+            $solicitudExistente->update([
                 'status'  => 'pending',
                 'message' => $validated['message'] ?? null,
             ]);
-            $joinRequest = $existingRequest;
+            $solicitudUnion = $solicitudExistente;
         } else {
-            $joinRequest = ClubJoinRequest::create([
+            $solicitudUnion = ClubJoinRequest::create([
                 'user_id' => $request->user()->id,
                 'club_id' => $validated['club_id'],
                 'message' => $validated['message'] ?? null,
             ]);
         }
 
-        $club = Club::with('admin')->find($validated['club_id']);
-        $admin = $club?->admin;
+        $club = Club::with('administrador')->find($validated['club_id']);
+        $admin = $club?->administrador;
 
         if ($admin) {
-            $admin->notify(new \App\Notifications\ClubJoinRequestNotification($joinRequest));
+            $admin->notify(new \App\Notifications\ClubJoinRequestNotification($solicitudUnion));
         }
 
         return redirect()->route('dashboard')->with('success', 'Solicitud de unirse al club enviada. El administrador recibirá un correo para aceptarla o rechazarla.');
@@ -154,7 +154,6 @@ class ClubController extends Controller
     /**
      * Mostrar solicitudes pendientes del club del admin.
      */
-    public function joinRequests(): Response|RedirectResponse
     {
         $user = auth()->user();
 
@@ -375,7 +374,7 @@ class ClubController extends Controller
      */
     public function destroy(Request $request, Club $club): RedirectResponse
     {
-        Gate::authorize('delete', $club);
+        Gate::authorize('eliminar', $club);
 
         $request->validate([
             'confirm_name' => ['required', 'string', Rule::in([$club->name])],

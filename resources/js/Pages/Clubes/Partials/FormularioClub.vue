@@ -37,23 +37,23 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['submit']);
-const logoPreview = ref(props.initialLogoUrl);
+const previsualizacionLogo = ref(props.initialLogoUrl);
 
 watch(
     () => props.initialLogoUrl,
     (value) => {
         if (!props.form.logo) {
-            logoPreview.value = value;
+            previsualizacionLogo.value = value;
         }
     },
 );
 
-function onLogoChange(event) {
+function alCambiarLogo(event) {
     const file = event.target.files[0];
 
     if (!file) {
         props.form.logo = null;
-        logoPreview.value = props.initialLogoUrl;
+        previsualizacionLogo.value = props.initialLogoUrl;
         return;
     }
 
@@ -61,7 +61,7 @@ function onLogoChange(event) {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-        logoPreview.value = e.target?.result ?? null;
+        previsualizacionLogo.value = e.target?.result ?? null;
     };
     reader.readAsDataURL(file);
 }
@@ -105,9 +105,9 @@ function onLogoChange(event) {
                     <InputLabel for="logo" value="Logo del Club" />
 
                     <div class="mt-2 flex items-center gap-4">
-                        <div v-if="logoPreview" class="h-20 w-20 shrink-0 overflow-hidden rounded-lg border-2 border-gray-300">
+                        <div v-if="previsualizacionLogo" class="h-20 w-20 shrink-0 overflow-hidden rounded-lg border-2 border-gray-300">
                             <img
-                                :src="logoPreview"
+                                :src="previsualizacionLogo"
                                 alt="Logo preview"
                                 class="h-full w-full object-cover"
                             />
@@ -125,7 +125,7 @@ function onLogoChange(event) {
                                 type="file"
                                 class="sr-only"
                                 accept="image/jpeg,image/png"
-                                @change="onLogoChange"
+                                @change="alCambiarLogo"
                             />
                             <p class="text-xs text-gray-500">{{ logoHelpText }}</p>
                         </div>

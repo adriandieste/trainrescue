@@ -30,33 +30,33 @@ const props = defineProps({
 
 const page = usePage();
 const flash = computed(() => page.props.flash ?? {});
-const search = ref(props.filters.search ?? '');
-const invitingUserId = ref(null);
+const terminoBusqueda = ref(props.filters.search ?? '');
+const idUsuarioInvitando = ref(null);
 
-function submitSearch() {
+function enviarBusqueda() {
     router.get(route('clubs.members.index'), {
-        search: search.value,
+        search: terminoBusqueda.value,
     }, {
         preserveState: true,
         replace: true,
     });
 }
 
-function clearSearch() {
-    search.value = '';
-    submitSearch();
+function limpiarBusqueda() {
+    terminoBusqueda.value = '';
+    enviarBusqueda();
 }
 
-function sendInvitation(userId) {
-    invitingUserId.value = userId;
+function enviarInvitacion(userId) {
+    idUsuarioInvitando.value = userId;
 
     router.post(route('club-invitations.store'), {
         invited_user_id: userId,
-        search: search.value,
+        search: terminoBusqueda.value,
     }, {
         preserveScroll: true,
         onFinish: () => {
-            invitingUserId.value = null;
+            idUsuarioInvitando.value = null;
         },
     });
 }
@@ -122,9 +122,9 @@ function initials(name) {
                             </div>
                         </div>
 
-                        <form class="mt-6 flex flex-col gap-3 md:flex-row" @submit.prevent="submitSearch">
+                        <form class="mt-6 flex flex-col gap-3 md:flex-row" @submit.prevent="enviarBusqueda">
                             <input
-                                v-model="search"
+                                v-model="terminoBusqueda"
                                 type="text"
                                 class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                 placeholder="Buscar por nombre o email"
@@ -132,7 +132,7 @@ function initials(name) {
 
                             <div class="flex gap-3">
                                 <PrimaryButton type="submit">Buscar</PrimaryButton>
-                                <SecondaryButton v-if="filters.search" type="button" @click="clearSearch">
+                                <SecondaryButton v-if="filters.search" type="button" @click="limpiarBusqueda">
                                     Limpiar
                                 </SecondaryButton>
                             </div>
@@ -171,10 +171,10 @@ function initials(name) {
                                             :class="result.can_invite
                                                 ? 'bg-blue-600 hover:bg-blue-700'
                                                 : 'cursor-not-allowed bg-gray-300 text-gray-600'"
-                                            :disabled="!result.can_invite || invitingUserId === result.id"
-                                            @click="sendInvitation(result.id)"
+                                            :disabled="!result.can_invite || idUsuarioInvitando === result.id"
+                                            @click="enviarInvitacion(result.id)"
                                         >
-                                            <span v-if="invitingUserId === result.id">Enviando...</span>
+                                            <span v-if="idUsuarioInvitando === result.id">Enviando...</span>
                                             <span v-else>{{ result.can_invite ? 'Invitar' : 'No disponible' }}</span>
                                         </button>
                                     </div>
