@@ -1,7 +1,11 @@
 <script setup>
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import ClubInvitationsBell from '@/Components/ClubInvitationsBell.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+
+const page = usePage();
+const isEntrenador = computed(() => page.props.auth?.user?.rol === 'entrenador');
 </script>
 
 <template>
@@ -29,7 +33,16 @@ import { Link } from '@inertiajs/vue3';
                             Calendario
                         </button>
 
-                        <button class="group flex flex-col items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-gray-600 transition">
+                        <Link
+                            v-if="isEntrenador"
+                            :href="route('exercises.library')"
+                            class="group flex flex-col items-center gap-1 text-[11px] font-bold uppercase tracking-wider transition"
+                            :class="route().current('exercises.*') ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'"
+                        >
+                            <svg class="h-6 w-6 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                            Entrenos
+                        </Link>
+                        <button v-else class="group flex flex-col items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-gray-600 transition">
                             <svg class="h-6 w-6 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                             Entrenos
                         </button>
@@ -66,7 +79,16 @@ import { Link } from '@inertiajs/vue3';
                     <span class="text-[10px] font-bold uppercase">Calendario</span>
                 </button>
 
-                <button class="flex flex-col items-center gap-1 px-3 text-gray-400 active:scale-90 transition">
+                <Link
+                    v-if="isEntrenador"
+                    :href="route('exercises.library')"
+                    class="flex flex-col items-center gap-1 px-3 transition active:scale-90"
+                    :class="route().current('exercises.*') ? 'text-blue-600' : 'text-gray-400'"
+                >
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    <span class="text-[10px] font-bold uppercase">Entrenos</span>
+                </Link>
+                <button v-else class="flex flex-col items-center gap-1 px-3 text-gray-400 active:scale-90 transition">
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                     <span class="text-[10px] font-bold uppercase">Entrenos</span>
                 </button>
