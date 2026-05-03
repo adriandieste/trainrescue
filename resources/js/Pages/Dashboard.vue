@@ -360,7 +360,10 @@ function removeMember() {
                                                 <div v-else class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">
                                                     {{ initials(member.name) }}
                                                 </div>
-                                                <span class="font-medium text-gray-900">{{ member.name }}</span>
+                                                <span class="font-medium text-gray-900">
+                                                    {{ member.name }}
+                                                    <span v-if="member.id === user.id" class="ml-1 text-xs font-normal text-blue-500">(yo)</span>
+                                                </span>
                                             </div>
                                         </td>
                                         <td class="whitespace-nowrap px-4 py-4 text-sm text-gray-600">{{ member.email }}</td>
