@@ -5,6 +5,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ClubController;
 use App\Http\Controllers\ClubInvitationController;
 use App\Http\Controllers\ExerciseLibraryController;
+use App\Http\Controllers\WorkoutController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -23,6 +24,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/exercises/custom', [ExerciseLibraryController::class, 'storeCustom'])->name('exercises.custom.store');
         Route::patch('/exercises/custom/{customExercise}', [ExerciseLibraryController::class, 'updateCustom'])->name('exercises.custom.update');
         Route::delete('/exercises/custom/{customExercise}', [ExerciseLibraryController::class, 'destroyCustom'])->name('exercises.custom.destroy');
+        Route::post('/workouts', [WorkoutController::class, 'store'])->name('workouts.store');
+        Route::patch('/workouts/{workout}', [WorkoutController::class, 'update'])->name('workouts.update');
         Route::get('/clubs/create', [ClubController::class, 'crear'])->name('clubs.create');
         Route::post('/clubs', [ClubController::class, 'guardar'])->name('clubs.store');
         Route::get('/clubs/{club}/edit', [ClubController::class, 'editar'])->name('clubs.edit');

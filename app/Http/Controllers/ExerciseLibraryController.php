@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\GuardarEjercicioPersonalizadoRequest;
 use App\Models\CustomExercise;
 use App\Models\PredefinedExercise;
+use App\Models\Workout;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
@@ -24,6 +25,7 @@ class ExerciseLibraryController extends Controller
             ->get()
             ->map(fn (PredefinedExercise $exercise) => [
                 'id' => 'predefined-' . $exercise->id,
+                'exercise_id' => $exercise->id,
                 'custom_exercise_id' => null,
                 'name' => $exercise->name,
                 'category' => $exercise->category,
@@ -31,6 +33,9 @@ class ExerciseLibraryController extends Controller
                 'materials' => $exercise->materials ?? [],
                 'video_url' => null,
                 'source' => 'predefined',
+                'default_sets' => 3,
+                'default_meters' => null,
+                'default_rest_seconds' => 45,
                 'can_edit' => false,
                 'can_delete' => false,
             ])
@@ -42,6 +47,7 @@ class ExerciseLibraryController extends Controller
             ->get()
             ->map(fn (CustomExercise $exercise) => [
                 'id' => 'custom-' . $exercise->id,
+                'exercise_id' => $exercise->id,
                 'custom_exercise_id' => $exercise->id,
                 'name' => $exercise->name,
                 'category' => 'personalizado',
@@ -49,6 +55,9 @@ class ExerciseLibraryController extends Controller
                 'materials' => $this->parseMaterials($exercise->materials),
                 'video_url' => $exercise->video_url,
                 'source' => 'custom',
+                'default_sets' => $exercise->default_sets ?? 3,
+                'default_meters' => $exercise->default_meters,
+                'default_rest_seconds' => $exercise->default_rest_seconds ?? 45,
                 'can_edit' => true,
                 'can_delete' => true,
             ])
@@ -64,9 +73,60 @@ class ExerciseLibraryController extends Controller
             ->sort()
             ->values();
 
+        $workouts = collect();
+
+        if (Schema::hasTable('workouts') && Schema::hasTable('workout_exercises')) {
+            $workouts = Workout::query()
+                ->with(['exercises.predefinedExercise', 'exercises.customExercise'])
+                ->where(function ($query) use ($request) {
+                    $query->where('creator_user_id', $request->user()->id);
+
+                    if ($request->user()->club_id) {
+                        $query->orWhere('club_id', $request->user()->club_id);
+                    }
+                })
+                ->orderBy('workout_date')
+                ->orderByDesc('created_at')
+                ->limit(20)
+                ->get()
+                ->map(function (Workout $workout) use ($request) {
+                    $lines = $workout->exercises->map(function ($line) {
+                        $isCustom = (bool) $line->custom_exercise_id;
+                        $exerciseModel = $isCustom ? $line->customExercise : $line->predefinedExercise;
+
+                        if (! $exerciseModel) {
+                            return null;
+                        }
+
+                        return [
+                            'source' => $isCustom ? 'custom' : 'predefined',
+                            'exercise_id' => $isCustom ? $line->custom_exercise_id : $line->predefined_exercise_id,
+                            'name' => $exerciseModel->name,
+                            'sets' => $line->sets,
+                            'meters' => $line->meters,
+                            'rest_seconds' => $line->rest_seconds,
+                        ];
+                    })
+                        ->filter()
+                        ->values();
+
+                    return [
+                        'id' => $workout->id,
+                        'title' => $workout->title,
+                        'workout_date' => $workout->workout_date?->format('Y-m-d'),
+                        'target_scope' => $workout->target_scope,
+                        'can_edit' => Gate::forUser($request->user())->allows('update', $workout),
+                        'exercises' => $lines,
+                    ];
+                })
+                ->values();
+        }
+
         return Inertia::render('Ejercicios/Entrenos', [
             'exercises' => $exercises,
             'categories' => $categories,
+            'entrenamientos' => $workouts,
+            'hasClub' => (bool) $request->user()->club_id,
         ]);
     }
 
@@ -80,6 +140,9 @@ class ExerciseLibraryController extends Controller
             'description' => $validated['description'],
             'materials' => $validated['materials'] ?? null,
             'video_url' => $validated['video_url'] ?? null,
+            'default_sets' => $validated['default_sets'] ?? 3,
+            'default_meters' => $validated['default_meters'] ?? null,
+            'default_rest_seconds' => $validated['default_rest_seconds'] ?? 45,
         ]);
 
         return redirect()
@@ -98,6 +161,9 @@ class ExerciseLibraryController extends Controller
             'description' => $validated['description'],
             'materials' => $validated['materials'] ?? null,
             'video_url' => $validated['video_url'] ?? null,
+            'default_sets' => $validated['default_sets'] ?? 3,
+            'default_meters' => $validated['default_meters'] ?? null,
+            'default_rest_seconds' => $validated['default_rest_seconds'] ?? 45,
         ]);
 
         return redirect()
@@ -112,7 +178,7 @@ class ExerciseLibraryController extends Controller
         if ($this->isUsedInWorkout($customExercise->id)) {
             return redirect()
                 ->route('exercises.library')
-                ->with('error', 'No se puede eliminar: este ejercicio esta vinculado a un entrenamiento existente.');
+                ->with('error', 'No se puede eliminar: este ejercicio esta vinculado a una sesion de entrenamiento existente.');
         }
 
         $customExercise->delete();

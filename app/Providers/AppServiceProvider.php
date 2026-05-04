@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Models\Club;
 use App\Models\CustomExercise;
+use App\Models\Workout;
 use App\Policies\ClubPolicy;
 use App\Policies\CustomExercisePolicy;
+use App\Policies\WorkoutPolicy;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -29,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Club::class, ClubPolicy::class);
         Gate::policy(CustomExercise::class, CustomExercisePolicy::class);
+        Gate::policy(Workout::class, WorkoutPolicy::class);
 
         Vite::prefetch(concurrency: 3);
 

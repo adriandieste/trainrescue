@@ -12,10 +12,20 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    entrenamientos: {
+        type: Array,
+        default: () => [],
+    },
+    hasClub: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const page = usePage();
 const flash = computed(() => page.props.flash ?? {});
+const hasClub = computed(() => props.hasClub);
+const entrenamientos = computed(() => props.entrenamientos ?? []);
 
 const search = ref('');
 const selectedCategory = ref('all');
@@ -62,11 +72,146 @@ const selectedExercise = computed(() =>
     filteredExercises.value.find((item) => item.id === selectedExerciseId.value) ?? null
 );
 
+const entrenamientoForm = useForm({
+    title: '',
+    workout_date: '',
+    target_scope: hasClub.value ? 'club' : 'personal',
+    exercises: [],
+});
+
+const draggedTrainingIndex = ref(null);
+const showCreateTrainingForm = ref(false);
+const editingTrainingId = ref(null);
+
+const isTrainingInvalid = computed(() => {
+    if (!entrenamientoForm.title.trim() || !entrenamientoForm.workout_date) {
+        return true;
+    }
+
+    if (!entrenamientoForm.exercises.length) {
+        return true;
+    }
+
+    return entrenamientoForm.exercises.some((item) => !item.sets || item.sets < 1);
+});
+
+function sourceLabel(source) {
+    return source === 'custom' ? 'Personalizado' : 'RFESS';
+}
+
+function resetTrainingForm() {
+    entrenamientoForm.reset('title', 'workout_date', 'exercises');
+    entrenamientoForm.clearErrors();
+    entrenamientoForm.target_scope = hasClub.value ? 'club' : 'personal';
+    editingTrainingId.value = null;
+}
+
+function closeTrainingForm() {
+    showCreateTrainingForm.value = false;
+    resetTrainingForm();
+}
+
+function toggleTrainingForm() {
+    if (showCreateTrainingForm.value) {
+        closeTrainingForm();
+        return;
+    }
+
+    showCreateTrainingForm.value = true;
+}
+
+function openTrainingEditor(entrenamiento) {
+    showCreateTrainingForm.value = true;
+    editingTrainingId.value = entrenamiento.id;
+    entrenamientoForm.clearErrors();
+    entrenamientoForm.title = entrenamiento.title ?? '';
+    entrenamientoForm.workout_date = entrenamiento.workout_date ?? '';
+    entrenamientoForm.target_scope = entrenamiento.target_scope ?? (hasClub.value ? 'club' : 'personal');
+    entrenamientoForm.exercises = (entrenamiento.exercises ?? []).map((item) => ({
+        source: item.source,
+        exercise_id: item.exercise_id,
+        name: item.name,
+        sets: item.sets ?? 3,
+        meters: item.meters ?? null,
+        rest_seconds: item.rest_seconds ?? 45,
+    }));
+}
+
+function addExerciseToTraining(exercise) {
+    entrenamientoForm.clearErrors();
+
+    entrenamientoForm.exercises.push({
+        source: exercise.source,
+        exercise_id: exercise.exercise_id,
+        name: exercise.name,
+        sets: exercise.default_sets ?? 3,
+        meters: exercise.default_meters ?? null,
+        rest_seconds: exercise.default_rest_seconds ?? 45,
+    });
+}
+
+function removeTrainingExercise(index) {
+    entrenamientoForm.exercises.splice(index, 1);
+}
+
+function startTrainingDrag(index) {
+    draggedTrainingIndex.value = index;
+}
+
+function dropTrainingExercise(targetIndex) {
+    if (draggedTrainingIndex.value === null || draggedTrainingIndex.value === targetIndex) {
+        draggedTrainingIndex.value = null;
+        return;
+    }
+
+    const [item] = entrenamientoForm.exercises.splice(draggedTrainingIndex.value, 1);
+    entrenamientoForm.exercises.splice(targetIndex, 0, item);
+    draggedTrainingIndex.value = null;
+}
+
+function submitTraining() {
+    entrenamientoForm.clearErrors();
+
+    if (isTrainingInvalid.value) {
+        return;
+    }
+
+    const request = entrenamientoForm.transform((data) => ({
+        ...data,
+        exercises: data.exercises.map((item) => ({
+            source: item.source,
+            exercise_id: item.exercise_id,
+            sets: Number(item.sets),
+            meters: item.meters ? Number(item.meters) : null,
+            rest_seconds: item.rest_seconds === '' || item.rest_seconds === null
+                ? null
+                : Number(item.rest_seconds),
+        })),
+    }));
+
+    const options = {
+        preserveScroll: true,
+        onSuccess: () => {
+            closeTrainingForm();
+        },
+    };
+
+    if (editingTrainingId.value) {
+        request.patch(route('workouts.update', editingTrainingId.value), options);
+        return;
+    }
+
+    request.post(route('workouts.store'), options);
+}
+
 const form = useForm({
     name: '',
     description: '',
     materials: '',
     video_url: '',
+    default_sets: 3,
+    default_meters: null,
+    default_rest_seconds: 45,
 });
 
 const editForm = useForm({
@@ -74,6 +219,9 @@ const editForm = useForm({
     description: '',
     materials: '',
     video_url: '',
+    default_sets: 3,
+    default_meters: null,
+    default_rest_seconds: 45,
 });
 
 const showCreateForm = ref(false);
@@ -110,8 +258,11 @@ function submitCustomExercise() {
 
     form.post(route('exercises.custom.store'), {
         preserveScroll: true,
+        preserveState: false,
         onSuccess: () => {
+            showCreateForm.value = false;
             form.reset();
+            form.clearErrors();
         },
     });
 }
@@ -129,6 +280,9 @@ watch(selectedExercise, (exercise) => {
     editForm.description = exercise.technical_description ?? '';
     editForm.materials = (exercise.materials ?? []).join(', ');
     editForm.video_url = exercise.video_url ?? '';
+    editForm.default_sets = exercise.default_sets ?? 3;
+    editForm.default_meters = exercise.default_meters ?? null;
+    editForm.default_rest_seconds = exercise.default_rest_seconds ?? 45;
     editForm.clearErrors();
 }, { immediate: true });
 
@@ -213,6 +367,158 @@ function formatCategory(category) {
                 <div class="border-b border-gray-200 p-6">
                     <div class="flex items-start justify-between gap-4">
                         <div>
+                            <h2 class="text-lg font-semibold text-gray-900">
+                                {{ editingTrainingId ? 'Editar entrenamiento' : 'Crear entrenamiento' }}
+                            </h2>
+                            <p class="mt-1 text-sm text-gray-600">Crea entrenamientos con fecha y combina ejercicios RFESS y personalizados en una lista ordenable.</p>
+                        </div>
+                        <button
+                            type="button"
+                            class="inline-flex shrink-0 items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-900"
+                            @click="toggleTrainingForm"
+                        >
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                            </svg>
+                            {{ showCreateTrainingForm ? 'Ocultar' : 'Crear' }}
+                        </button>
+                    </div>
+                </div>
+
+                <form v-if="showCreateTrainingForm" class="space-y-4 p-6" @submit.prevent="submitTraining">
+                    <div class="grid gap-4 md:grid-cols-3">
+                        <div class="md:col-span-2">
+                            <label class="mb-1 block text-sm font-medium text-gray-700">Titulo del entrenamiento *</label>
+                            <input
+                                v-model="entrenamientoForm.title"
+                                type="text"
+                                class="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2"
+                                :class="entrenamientoForm.errors.title ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'"
+                                placeholder="Ej: Entrenamiento de Resistencia"
+                            >
+                            <p v-if="entrenamientoForm.errors.title" class="mt-1 text-xs text-red-600">{{ entrenamientoForm.errors.title }}</p>
+                        </div>
+
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-gray-700">Fecha *</label>
+                            <input
+                                v-model="entrenamientoForm.workout_date"
+                                type="date"
+                                class="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2"
+                                :class="entrenamientoForm.errors.workout_date ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'"
+                            >
+                            <p v-if="entrenamientoForm.errors.workout_date" class="mt-1 text-xs text-red-600">{{ entrenamientoForm.errors.workout_date }}</p>
+                        </div>
+                    </div>
+
+                    <div class="max-w-sm">
+                        <label class="mb-1 block text-sm font-medium text-gray-700">Guardar para *</label>
+                        <select
+                            v-model="entrenamientoForm.target_scope"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="personal">Mis alumnos personales</option>
+                            <option v-if="hasClub" value="club">Mi club</option>
+                        </select>
+                        <p v-if="entrenamientoForm.errors.target_scope" class="mt-1 text-xs text-red-600">{{ entrenamientoForm.errors.target_scope }}</p>
+                    </div>
+
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                        <div class="mb-3 flex items-center justify-between gap-2">
+                            <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Ejercicios del entrenamiento</h3>
+                            <span class="text-xs text-gray-500">{{ entrenamientoForm.exercises.length }} {{ entrenamientoForm.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }}</span>
+                        </div>
+
+                        <div v-if="entrenamientoForm.exercises.length === 0" class="rounded-lg border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-500">
+                            Agrega ejercicios desde la biblioteca lateral para construir el entrenamiento.
+                        </div>
+
+                        <div v-else class="space-y-3">
+                            <div
+                                v-for="(item, index) in entrenamientoForm.exercises"
+                                :key="`${item.source}-${item.exercise_id}-${index}`"
+                                draggable="true"
+                                class="rounded-lg border border-gray-200 bg-white p-3"
+                                @dragstart="startTrainingDrag(index)"
+                                @dragover.prevent
+                                @drop.prevent="dropTrainingExercise(index)"
+                            >
+                                <div class="mb-3 flex items-center justify-between gap-2">
+                                    <div>
+                                        <p class="text-sm font-semibold text-gray-900">{{ index + 1 }}. {{ item.name }}</p>
+                                        <span
+                                            class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                                            :class="item.source === 'custom' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'"
+                                        >
+                                            {{ sourceLabel(item.source) }}
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-100"
+                                        @click="removeTrainingExercise(index)"
+                                    >
+                                        Quitar
+                                    </button>
+                                </div>
+
+                                <div class="grid gap-2 md:grid-cols-3">
+                                    <label class="text-xs font-medium text-gray-600">
+                                        Series *
+                                        <input
+                                            v-model.number="item.sets"
+                                            type="number"
+                                            min="1"
+                                            class="mt-1 w-full rounded-lg border px-2 py-1.5 text-sm focus:ring-2"
+                                            :class="(!item.sets || item.sets < 1) ? 'border-red-400 focus:border-red-500 focus:ring-red-300' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-300'"
+                                        >
+                                        <span v-if="!item.sets || item.sets < 1" class="text-red-500 text-[10px]">Mínimo 1 serie</span>
+                                    </label>
+                                    <label class="text-xs font-medium text-gray-600">
+                                        Metros
+                                        <input
+                                            v-model.number="item.meters"
+                                            type="number"
+                                            min="1"
+                                            placeholder="Opcional"
+                                            class="mt-1 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-300"
+                                        >
+                                    </label>
+                                    <label class="text-xs font-medium text-gray-600">
+                                        Descanso (s)
+                                        <input
+                                            v-model.number="item.rest_seconds"
+                                            type="number"
+                                            min="0"
+                                            placeholder="Opcional"
+                                            class="mt-1 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-300"
+                                        >
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p v-if="entrenamientoForm.errors.exercises" class="mt-2 text-xs text-red-600">{{ entrenamientoForm.errors.exercises }}</p>
+                        <p v-if="isTrainingInvalid && !entrenamientoForm.processing" class="mt-2 text-xs text-amber-700">Completa titulo, fecha y al menos un ejercicio con series.</p>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button
+                            type="submit"
+                            :disabled="entrenamientoForm.processing || isTrainingInvalid"
+                            class="inline-flex items-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-900 disabled:opacity-50"
+                        >
+                            <span v-if="entrenamientoForm.processing">Guardando entrenamiento...</span>
+                            <span v-else>{{ editingTrainingId ? 'Guardar cambios' : 'Guardar entrenamiento' }}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                <div class="border-b border-gray-200 p-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
                             <h2 class="text-lg font-semibold text-gray-900">Crear ejercicio personalizado</h2>
                             <p class="mt-1 text-sm text-gray-600">Amplia tu biblioteca privada con ejercicios adaptados a tu metodologia.</p>
                         </div>
@@ -283,6 +589,39 @@ function formatCategory(category) {
                         <p v-if="form.errors.materials" class="mt-1 text-xs text-red-600">{{ form.errors.materials }}</p>
                     </div>
 
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700">Series por defecto</label>
+                        <input
+                            v-model.number="form.default_sets"
+                            type="number"
+                            min="1"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                        >
+                        <p v-if="form.errors.default_sets" class="mt-1 text-xs text-red-600">{{ form.errors.default_sets }}</p>
+                    </div>
+
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700">Metros por defecto</label>
+                        <input
+                            v-model.number="form.default_meters"
+                            type="number"
+                            min="1"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                        >
+                        <p v-if="form.errors.default_meters" class="mt-1 text-xs text-red-600">{{ form.errors.default_meters }}</p>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="mb-1 block text-sm font-medium text-gray-700">Descanso por defecto (s)</label>
+                        <input
+                            v-model.number="form.default_rest_seconds"
+                            type="number"
+                            min="0"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                        >
+                        <p v-if="form.errors.default_rest_seconds" class="mt-1 text-xs text-red-600">{{ form.errors.default_rest_seconds }}</p>
+                    </div>
+
                     <div class="md:col-span-2 flex justify-end">
                         <button
                             type="submit"
@@ -348,19 +687,36 @@ function formatCategory(category) {
                     </div>
 
                     <div class="max-h-[560px] overflow-y-auto">
-                        <button
+                        <div
                             v-for="exercise in filteredExercises"
                             :key="exercise.id"
-                            type="button"
                             class="w-full border-b border-gray-100 px-4 py-3 text-left transition hover:bg-gray-50"
                             :class="[
                                 selectedExerciseId === exercise.id ? 'bg-blue-50' : '',
                                 exercise.source === 'custom' ? 'border-l-4 border-l-violet-400' : 'border-l-4 border-l-transparent',
                             ]"
-                            @click="selectedExerciseId = exercise.id"
                         >
-                            <span class="block text-sm font-semibold text-gray-900">{{ exercise.name }}</span>
-                            <span class="mt-1 inline-flex items-center gap-2">
+                            <div class="flex items-start justify-between gap-2">
+                                <button
+                                    type="button"
+                                    class="min-w-0 text-left"
+                                    @click="selectedExerciseId = exercise.id"
+                                >
+                                    <span class="block truncate text-sm font-semibold text-gray-900">{{ exercise.name }}</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="shrink-0 rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-100"
+                                    @click.stop="addExerciseToTraining(exercise)"
+                                >
+                                    Anadir
+                                </button>
+                            </div>
+                            <button
+                                type="button"
+                                class="mt-1 inline-flex items-center gap-2"
+                                @click="selectedExerciseId = exercise.id"
+                            >
                                 <span class="block text-xs text-gray-500">{{ formatCategory(exercise.category) }}</span>
                                 <span
                                     class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
@@ -368,8 +724,8 @@ function formatCategory(category) {
                                 >
                                     {{ exercise.source === 'custom' ? 'Personalizado' : 'RFESS' }}
                                 </span>
-                            </span>
-                        </button>
+                            </button>
+                        </div>
 
                         <div v-if="filteredExercises.length === 0" class="p-4 text-sm text-gray-500">
                             No hay ejercicios que coincidan con los filtros actuales.
@@ -377,6 +733,32 @@ function formatCategory(category) {
 
                         <div v-if="filteredExercises.length > 0" class="border-t border-gray-100 px-4 py-2 text-xs text-gray-400">
                             {{ filteredExercises.length }} {{ filteredExercises.length === 1 ? 'ejercicio' : 'ejercicios' }} encontrado{{ filteredExercises.length === 1 ? '' : 's' }}
+                        </div>
+                    </div>
+
+                    <div v-if="entrenamientos.length > 0" class="border-t border-gray-200 p-4">
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Cronograma de entrenamientos</h3>
+                        <div class="mt-2 space-y-2">
+                            <div
+                                v-for="entrenamiento in entrenamientos"
+                                :key="entrenamiento.id"
+                                class="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs"
+                            >
+                                <div class="flex items-start justify-between gap-2">
+                                    <div>
+                                        <p class="font-semibold text-gray-800">{{ entrenamiento.title }}</p>
+                                        <p class="text-gray-500">{{ entrenamiento.workout_date }} · {{ entrenamiento.target_scope === 'club' ? 'Club' : 'Personal' }}</p>
+                                    </div>
+                                    <button
+                                        v-if="entrenamiento.can_edit"
+                                        type="button"
+                                        class="rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-100"
+                                        @click="openTrainingEditor(entrenamiento)"
+                                    >
+                                        Editar
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -461,6 +843,39 @@ function formatCategory(category) {
                                     class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                 />
                                 <p v-if="editForm.errors.materials" class="mt-1 text-xs text-red-600">{{ editForm.errors.materials }}</p>
+                            </div>
+
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-gray-700">Series por defecto</label>
+                                <input
+                                    v-model.number="editForm.default_sets"
+                                    type="number"
+                                    min="1"
+                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                >
+                                <p v-if="editForm.errors.default_sets" class="mt-1 text-xs text-red-600">{{ editForm.errors.default_sets }}</p>
+                            </div>
+
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-gray-700">Metros por defecto</label>
+                                <input
+                                    v-model.number="editForm.default_meters"
+                                    type="number"
+                                    min="1"
+                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                >
+                                <p v-if="editForm.errors.default_meters" class="mt-1 text-xs text-red-600">{{ editForm.errors.default_meters }}</p>
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label class="mb-1 block text-sm font-medium text-gray-700">Descanso por defecto (s)</label>
+                                <input
+                                    v-model.number="editForm.default_rest_seconds"
+                                    type="number"
+                                    min="0"
+                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                >
+                                <p v-if="editForm.errors.default_rest_seconds" class="mt-1 text-xs text-red-600">{{ editForm.errors.default_rest_seconds }}</p>
                             </div>
 
                             <div class="md:col-span-2 flex justify-end gap-2">
