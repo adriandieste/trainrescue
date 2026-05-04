@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\ClubInvitation;
 use App\Models\ClubJoinRequest;
 use App\Models\User;
+use App\Models\Workout;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -160,13 +162,51 @@ class DashboardController extends Controller
                     ->all();
             }
 
+            $entrenamientos = [];
+            if ($user->club_id && Schema::hasTable('workouts') && Schema::hasTable('workout_exercises')) {
+                $entrenamientos = Workout::with(['exercises.predefinedExercise', 'exercises.customExercise'])
+                    ->where('club_id', $user->club_id)
+                    ->where('target_scope', 'club')
+                    ->orderBy('workout_date', 'asc')
+                    ->get()
+                    ->map(function (Workout $workout) {
+                        return [
+                            'id'                     => $workout->id,
+                            'title'                  => $workout->title,
+                            'workout_date'           => $workout->workout_date?->format('Y-m-d'),
+                            'workout_date_formatted' => $workout->workout_date?->format('d/m/Y'),
+                            'exercises'              => $workout->exercises->map(function ($line) {
+                                $name = $line->predefinedExercise?->name
+                                    ?? $line->customExercise?->name
+                                    ?? 'Ejercicio';
+                                $label = $line->sets . ' x';
+                                if ($line->meters) {
+                                    $label .= ' ' . $line->meters . 'm';
+                                } else {
+                                    $label .= ' series';
+                                }
+                                if ($line->rest_seconds !== null) {
+                                    $label .= ' — Descanso: ' . $line->rest_seconds . 's';
+                                }
+                                return [
+                                    'name'         => $name,
+                                    'sets'         => $line->sets,
+                                    'meters'       => $line->meters,
+                                    'rest_seconds' => $line->rest_seconds,
+                                    'load_label'   => $label,
+                                ];
+                            })->values()->all(),
+                        ];
+                    })
+                    ->all();
+            }
             return Inertia::render('DashboardAtleta', [
-                'invitationsTitle' => 'Invitaciones',
+                'invitationsTitle'   => 'Invitaciones',
                 'pendingInvitations' => $pendingInvitations,
-                'clubmates' => $clubmates,
+                'clubmates'          => $clubmates,
+                'entrenamientos'     => $entrenamientos,
             ]);
         }
-
         abort(403, 'Acceso denegado: Rol no reconocido.');
     }
 }
