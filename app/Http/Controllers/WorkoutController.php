@@ -24,8 +24,9 @@ class WorkoutController extends Controller
                 'creator_user_id' => $trainer->id,
                 'club_id' => $validated['target_scope'] === 'club' ? $trainer->club_id : null,
                 'title' => $validated['title'],
-                'workout_date' => $validated['workout_date'],
+                'workout_date' => $validated['is_template'] ? null : $validated['workout_date'],
                 'target_scope' => $validated['target_scope'],
+                'is_template' => (bool) $validated['is_template'],
             ]);
 
             $this->syncWorkoutExercises($workout, $validated['exercises'], $trainer->id);
@@ -33,9 +34,13 @@ class WorkoutController extends Controller
             return $workout;
         });
 
+        $successMessage = $workout->is_template
+            ? 'Plantilla guardada correctamente.'
+            : 'Entrenamiento creado correctamente para el '.$workout->workout_date?->format('d/m/Y').'.';
+
         return redirect()
             ->route('exercises.library')
-            ->with('success', 'Entrenamiento creado correctamente para el '.$workout->workout_date->format('d/m/Y').'.');
+            ->with('success', $successMessage);
     }
 
     public function update(GuardarWorkoutRequest $request, Workout $workout): RedirectResponse
@@ -49,17 +54,22 @@ class WorkoutController extends Controller
             $workout->update([
                 'club_id' => $validated['target_scope'] === 'club' ? $trainer->club_id : null,
                 'title' => $validated['title'],
-                'workout_date' => $validated['workout_date'],
+                'workout_date' => $validated['is_template'] ? null : $validated['workout_date'],
                 'target_scope' => $validated['target_scope'],
+                'is_template' => (bool) $validated['is_template'],
             ]);
 
             $workout->exercises()->delete();
             $this->syncWorkoutExercises($workout, $validated['exercises'], $trainer->id);
         });
 
+        $successMessage = $workout->fresh()->is_template
+            ? 'Plantilla actualizada correctamente.'
+            : 'Entrenamiento actualizado correctamente.';
+
         return redirect()
             ->route('exercises.library')
-            ->with('success', 'Entrenamiento actualizado correctamente.');
+            ->with('success', $successMessage);
     }
 
     private function syncWorkoutExercises(Workout $workout, array $exerciseInputs, int $trainerId): void

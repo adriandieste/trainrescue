@@ -74,9 +74,10 @@ class ExerciseLibraryController extends Controller
             ->values();
 
         $workouts = collect();
+        $templates = collect();
 
         if (Schema::hasTable('workouts') && Schema::hasTable('workout_exercises')) {
-            $workouts = Workout::query()
+            $baseQuery = Workout::query()
                 ->with(['exercises.predefinedExercise', 'exercises.customExercise'])
                 ->where(function ($query) use ($request) {
                     $query->where('creator_user_id', $request->user()->id);
@@ -84,48 +85,36 @@ class ExerciseLibraryController extends Controller
                     if ($request->user()->club_id) {
                         $query->orWhere('club_id', $request->user()->club_id);
                     }
-                })
+                });
+
+            $supportsTemplates = Schema::hasColumn('workouts', 'is_template');
+
+            $workouts = (clone $baseQuery)
+                ->when($supportsTemplates, fn ($query) => $query->where('is_template', false))
                 ->orderBy('workout_date')
                 ->orderByDesc('created_at')
                 ->limit(20)
                 ->get()
-                ->map(function (Workout $workout) use ($request) {
-                    $lines = $workout->exercises->map(function ($line) {
-                        $isCustom = (bool) $line->custom_exercise_id;
-                        $exerciseModel = $isCustom ? $line->customExercise : $line->predefinedExercise;
-
-                        if (! $exerciseModel) {
-                            return null;
-                        }
-
-                        return [
-                            'source' => $isCustom ? 'custom' : 'predefined',
-                            'exercise_id' => $isCustom ? $line->custom_exercise_id : $line->predefined_exercise_id,
-                            'name' => $exerciseModel->name,
-                            'sets' => $line->sets,
-                            'meters' => $line->meters,
-                            'rest_seconds' => $line->rest_seconds,
-                        ];
-                    })
-                        ->filter()
-                        ->values();
-
-                    return [
-                        'id' => $workout->id,
-                        'title' => $workout->title,
-                        'workout_date' => $workout->workout_date?->format('Y-m-d'),
-                        'target_scope' => $workout->target_scope,
-                        'can_edit' => Gate::forUser($request->user())->allows('update', $workout),
-                        'exercises' => $lines,
-                    ];
-                })
+                ->map(fn (Workout $workout) => $this->mapWorkoutForBuilder($workout, $request))
                 ->values();
+
+            if ($supportsTemplates) {
+                $templates = (clone $baseQuery)
+                    ->where('creator_user_id', $request->user()->id)
+                    ->where('is_template', true)
+                    ->orderByDesc('updated_at')
+                    ->limit(20)
+                    ->get()
+                    ->map(fn (Workout $workout) => $this->mapWorkoutForBuilder($workout, $request))
+                    ->values();
+            }
         }
 
         return Inertia::render('Ejercicios/Entrenos', [
             'exercises' => $exercises,
             'categories' => $categories,
             'entrenamientos' => $workouts,
+            'plantillas' => $templates,
             'hasClub' => (bool) $request->user()->club_id,
         ]);
     }
@@ -214,6 +203,39 @@ class ExerciseLibraryController extends Controller
         }
 
         return false;
+    }
+
+    private function mapWorkoutForBuilder(Workout $workout, Request $request): array
+    {
+        $lines = $workout->exercises->map(function ($line) {
+            $isCustom = (bool) $line->custom_exercise_id;
+            $exerciseModel = $isCustom ? $line->customExercise : $line->predefinedExercise;
+
+            if (! $exerciseModel) {
+                return null;
+            }
+
+            return [
+                'source' => $isCustom ? 'custom' : 'predefined',
+                'exercise_id' => $isCustom ? $line->custom_exercise_id : $line->predefined_exercise_id,
+                'name' => $exerciseModel->name,
+                'sets' => $line->sets,
+                'meters' => $line->meters,
+                'rest_seconds' => $line->rest_seconds,
+            ];
+        })
+            ->filter()
+            ->values();
+
+        return [
+            'id' => $workout->id,
+            'title' => $workout->title,
+            'workout_date' => $workout->workout_date?->format('Y-m-d'),
+            'target_scope' => $workout->target_scope,
+            'is_template' => (bool) $workout->is_template,
+            'can_edit' => Gate::forUser($request->user())->allows('update', $workout),
+            'exercises' => $lines,
+        ];
     }
 }
 

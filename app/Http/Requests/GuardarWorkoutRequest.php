@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class GuardarWorkoutRequest extends FormRequest
@@ -24,7 +25,12 @@ class GuardarWorkoutRequest extends FormRequest
     {
         return [
             'title' => ['required', 'string', 'max:255'],
-            'workout_date' => ['required', 'date'],
+            'is_template' => ['required', 'boolean'],
+            'workout_date' => [
+                'nullable',
+                'date',
+                Rule::requiredIf(fn (): bool => ! $this->boolean('is_template')),
+            ],
             'target_scope' => ['required', 'in:personal,club'],
             'exercises' => ['required', 'array', 'min:1'],
             'exercises.*.source' => ['required', 'in:predefined,custom'],
@@ -42,6 +48,13 @@ class GuardarWorkoutRequest extends FormRequest
                 $validator->errors()->add('target_scope', 'No puedes guardar sesiones de club sin pertenecer a uno.');
             }
         });
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('is_template')) {
+            $this->merge(['is_template' => false]);
+        }
     }
 
     public function messages(): array
