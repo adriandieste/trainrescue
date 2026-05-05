@@ -135,6 +135,78 @@ class WorkoutBuilderTest extends TestCase
             ->assertSessionHasErrors(['exercises']);
     }
 
+    public function test_trainer_can_save_template_without_workout_date(): void
+    {
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+
+        $predefined = PredefinedExercise::create([
+            'name' => 'Plantilla 50m tecnica',
+            'category' => 'tecnica',
+            'technical_description' => 'Bloque base reutilizable.',
+            'materials' => ['tabla'],
+            'is_active' => true,
+        ]);
+
+        $response = $this
+            ->actingAs($trainer)
+            ->post(route('workouts.store'), [
+                'title' => 'Plantilla de velocidad',
+                'is_template' => true,
+                'target_scope' => 'personal',
+                'exercises' => [[
+                    'source' => 'predefined',
+                    'exercise_id' => $predefined->id,
+                    'sets' => 4,
+                    'meters' => 50,
+                    'rest_seconds' => 30,
+                ]],
+            ]);
+
+        $response
+            ->assertRedirect(route('exercises.library'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('workouts', [
+            'creator_user_id' => $trainer->id,
+            'title' => 'Plantilla de velocidad',
+            'is_template' => true,
+            'workout_date' => null,
+        ]);
+    }
+
+    public function test_non_template_workout_requires_workout_date(): void
+    {
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+
+        $predefined = PredefinedExercise::create([
+            'name' => 'Resistencia controlada',
+            'category' => 'resistencia',
+            'technical_description' => 'Bloque de carga continua.',
+            'materials' => ['aletas'],
+            'is_active' => true,
+        ]);
+
+        $response = $this
+            ->actingAs($trainer)
+            ->from(route('exercises.library'))
+            ->post(route('workouts.store'), [
+                'title' => 'Sesion sin fecha',
+                'is_template' => false,
+                'target_scope' => 'personal',
+                'exercises' => [[
+                    'source' => 'predefined',
+                    'exercise_id' => $predefined->id,
+                    'sets' => 3,
+                    'meters' => 100,
+                    'rest_seconds' => 40,
+                ]],
+            ]);
+
+        $response
+            ->assertRedirect(route('exercises.library'))
+            ->assertSessionHasErrors(['workout_date']);
+    }
+
     public function test_trainer_cannot_create_club_workout_without_club(): void
     {
         $trainer = User::factory()->create(['rol' => 'entrenador', 'club_id' => null]);
