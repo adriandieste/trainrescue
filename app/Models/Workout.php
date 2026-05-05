@@ -17,10 +17,12 @@ class Workout extends Model
         'title',
         'workout_date',
         'target_scope',
+        'is_template',
     ];
 
     protected $casts = [
         'workout_date' => 'date',
+        'is_template' => 'boolean',
     ];
 
     public function creator(): BelongsTo

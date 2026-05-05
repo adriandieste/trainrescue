@@ -16,6 +16,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    plantillas: {
+        type: Array,
+        default: () => [],
+    },
     hasClub: {
         type: Boolean,
         default: false,
@@ -26,6 +30,7 @@ const page = usePage();
 const flash = computed(() => page.props.flash ?? {});
 const hasClub = computed(() => props.hasClub);
 const entrenamientos = computed(() => props.entrenamientos ?? []);
+const plantillas = computed(() => props.plantillas ?? []);
 
 const search = ref('');
 const selectedCategory = ref('all');
@@ -76,6 +81,7 @@ const entrenamientoForm = useForm({
     title: '',
     workout_date: '',
     target_scope: hasClub.value ? 'club' : 'personal',
+    is_template: false,
     exercises: [],
 });
 
@@ -84,7 +90,11 @@ const showCreateTrainingForm = ref(false);
 const editingTrainingId = ref(null);
 
 const isTrainingInvalid = computed(() => {
-    if (!entrenamientoForm.title.trim() || !entrenamientoForm.workout_date) {
+    if (!entrenamientoForm.title.trim()) {
+        return true;
+    }
+
+    if (!entrenamientoForm.is_template && !entrenamientoForm.workout_date) {
         return true;
     }
 
@@ -100,9 +110,10 @@ function sourceLabel(source) {
 }
 
 function resetTrainingForm() {
-    entrenamientoForm.reset('title', 'workout_date', 'exercises');
+    entrenamientoForm.reset('title', 'workout_date', 'target_scope', 'is_template', 'exercises');
     entrenamientoForm.clearErrors();
     entrenamientoForm.target_scope = hasClub.value ? 'club' : 'personal';
+    entrenamientoForm.is_template = false;
     editingTrainingId.value = null;
     pendingRemoveIndex.value = null;
 }
@@ -128,6 +139,7 @@ function openTrainingEditor(entrenamiento) {
     entrenamientoForm.title = entrenamiento.title ?? '';
     entrenamientoForm.workout_date = entrenamiento.workout_date ?? '';
     entrenamientoForm.target_scope = entrenamiento.target_scope ?? (hasClub.value ? 'club' : 'personal');
+    entrenamientoForm.is_template = Boolean(entrenamiento.is_template);
     entrenamientoForm.exercises = (entrenamiento.exercises ?? []).map((item) => ({
         source: item.source,
         exercise_id: item.exercise_id,
@@ -149,6 +161,24 @@ function addExerciseToTraining(exercise) {
         meters: exercise.default_meters ?? null,
         rest_seconds: exercise.default_rest_seconds ?? 45,
     });
+}
+
+function useTemplate(template) {
+    showCreateTrainingForm.value = true;
+    editingTrainingId.value = null;
+    entrenamientoForm.clearErrors();
+    entrenamientoForm.title = template.title ?? '';
+    entrenamientoForm.workout_date = '';
+    entrenamientoForm.target_scope = template.target_scope ?? (hasClub.value ? 'club' : 'personal');
+    entrenamientoForm.is_template = false;
+    entrenamientoForm.exercises = (template.exercises ?? []).map((item) => ({
+        source: item.source,
+        exercise_id: item.exercise_id,
+        name: item.name,
+        sets: item.sets ?? 3,
+        meters: item.meters ?? null,
+        rest_seconds: item.rest_seconds ?? 45,
+    }));
 }
 
 const pendingRemoveIndex = ref(null);
@@ -208,6 +238,8 @@ function submitTraining() {
 
     const request = entrenamientoForm.transform((data) => ({
         ...data,
+        is_template: Boolean(data.is_template),
+        workout_date: data.is_template ? null : data.workout_date,
         exercises: data.exercises.map((item) => ({
             source: item.source,
             exercise_id: item.exercise_id,
@@ -233,6 +265,12 @@ function submitTraining() {
 
     request.post(route('workouts.store'), options);
 }
+
+watch(() => entrenamientoForm.is_template, (isTemplate) => {
+    if (isTemplate) {
+        entrenamientoForm.workout_date = '';
+    }
+});
 
 const form = useForm({
     name: '',
@@ -398,9 +436,9 @@ function formatCategory(category) {
                     <div class="flex items-start justify-between gap-4">
                         <div>
                             <h2 class="text-lg font-semibold text-gray-900">
-                                {{ editingTrainingId ? 'Editar entrenamiento' : 'Crear entrenamiento' }}
+                                {{ editingTrainingId ? 'Editar entrenamiento' : 'Crear entrenamiento o plantilla' }}
                             </h2>
-                            <p class="mt-1 text-sm text-gray-600">Crea entrenamientos con fecha y combina ejercicios RFESS y personalizados en una lista ordenable.</p>
+                            <p class="mt-1 text-sm text-gray-600">Configura sesiones con ejercicios RFESS/personalizados y guárdalas como entrenamiento o plantilla reutilizable.</p>
                         </div>
                         <button
                             type="button"
@@ -430,15 +468,34 @@ function formatCategory(category) {
                         </div>
 
                         <div>
-                            <label class="mb-1 block text-sm font-medium text-gray-700">Fecha *</label>
+                            <label class="mb-1 block text-sm font-medium text-gray-700">Fecha {{ entrenamientoForm.is_template ? '(opcional)' : '*' }}</label>
                             <input
                                 v-model="entrenamientoForm.workout_date"
                                 type="date"
+                                :disabled="entrenamientoForm.is_template"
                                 class="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2"
-                                :class="entrenamientoForm.errors.workout_date ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'"
+                                :class="[
+                                    entrenamientoForm.errors.workout_date ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500',
+                                    entrenamientoForm.is_template ? 'cursor-not-allowed bg-gray-100 text-gray-500' : '',
+                                ]"
                             >
                             <p v-if="entrenamientoForm.errors.workout_date" class="mt-1 text-xs text-red-600">{{ entrenamientoForm.errors.workout_date }}</p>
+                            <p v-if="entrenamientoForm.is_template" class="mt-1 text-xs text-gray-500">Las plantillas no se asignan a una fecha concreta.</p>
                         </div>
+                    </div>
+
+                    <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
+                        <label class="inline-flex items-start gap-2 text-sm text-indigo-900">
+                            <input
+                                v-model="entrenamientoForm.is_template"
+                                type="checkbox"
+                                class="mt-0.5 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
+                            >
+                            <span>
+                                <span class="font-semibold">Guardar como plantilla</span>
+                                <span class="mt-0.5 block text-xs text-indigo-700">Se guarda en "Mis Plantillas" para reutilizarla en futuras sesiones.</span>
+                            </span>
+                        </label>
                     </div>
 
                     <div class="max-w-sm">
@@ -561,7 +618,9 @@ function formatCategory(category) {
                         </div>
 
                         <p v-if="entrenamientoForm.errors.exercises" class="mt-2 text-xs text-red-600">{{ entrenamientoForm.errors.exercises }}</p>
-                        <p v-if="isTrainingInvalid && !entrenamientoForm.processing" class="mt-2 text-xs text-amber-700">Completa titulo, fecha y al menos un ejercicio con series.</p>
+                        <p v-if="isTrainingInvalid && !entrenamientoForm.processing" class="mt-2 text-xs text-amber-700">
+                            Completa titulo, {{ entrenamientoForm.is_template ? 'al menos un ejercicio con series' : 'fecha y al menos un ejercicio con series' }}.
+                        </p>
                     </div>
 
                     <div class="flex justify-end">
@@ -570,8 +629,10 @@ function formatCategory(category) {
                             :disabled="entrenamientoForm.processing || isTrainingInvalid"
                             class="inline-flex items-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-900 disabled:opacity-50"
                         >
-                            <span v-if="entrenamientoForm.processing">Guardando entrenamiento...</span>
-                            <span v-else>{{ editingTrainingId ? 'Guardar cambios' : 'Guardar entrenamiento' }}</span>
+                            <span v-if="entrenamientoForm.processing">Guardando...</span>
+                            <span v-else>
+                                {{ editingTrainingId ? 'Guardar cambios' : (entrenamientoForm.is_template ? 'Guardar plantilla' : 'Guardar entrenamiento') }}
+                            </span>
                         </button>
                     </div>
                 </form>
@@ -819,6 +880,41 @@ function formatCategory(category) {
                                     >
                                         Editar
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="plantillas.length > 0" class="border-t border-gray-200 p-4">
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Mis Plantillas</h3>
+                        <div class="mt-2 space-y-2">
+                            <div
+                                v-for="plantilla in plantillas"
+                                :key="`tpl-${plantilla.id}`"
+                                class="rounded-lg border border-indigo-100 bg-indigo-50/70 px-3 py-2 text-xs"
+                            >
+                                <div class="flex items-start justify-between gap-2">
+                                    <div>
+                                        <p class="font-semibold text-indigo-900">{{ plantilla.title }}</p>
+                                        <p class="text-indigo-700">{{ plantilla.exercises.length }} {{ plantilla.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }} · {{ plantilla.target_scope === 'club' ? 'Club' : 'Personal' }}</p>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            class="rounded-md border border-indigo-300 bg-white px-2 py-1 text-[10px] font-semibold text-indigo-700 hover:bg-indigo-100"
+                                            @click="useTemplate(plantilla)"
+                                        >
+                                            Usar
+                                        </button>
+                                        <button
+                                            v-if="plantilla.can_edit"
+                                            type="button"
+                                            class="rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-100"
+                                            @click="openTrainingEditor(plantilla)"
+                                        >
+                                            Editar
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
