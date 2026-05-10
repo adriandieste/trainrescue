@@ -869,6 +869,62 @@ class WorkoutBuilderTest extends TestCase
         $this->assertStringNotContainsString('atletas', $flash);
     }
 
+    public function test_exercise_library_includes_calendar_events_for_trainer(): void
+    {
+        ['trainer' => $trainer, 'member1' => $member1, 'predefined' => $predefined] = $this->makeClubWithTrainerAndMembers();
+
+        $this->actingAs($trainer)->post(route('workouts.store'), [
+            'title' => 'Sesion para calendario',
+            'workout_date' => '2026-08-01',
+            'target_scope' => 'grupo',
+            'assigned_user_ids' => [$member1->id],
+            'exercises' => [[
+                'source' => 'predefined',
+                'exercise_id' => $predefined->id,
+                'sets' => 3,
+            ]],
+        ])->assertRedirect(route('exercises.library'));
+
+        $response = $this->actingAs($trainer)->get(route('exercises.library'));
+        $response->assertOk();
+
+        $calendarEvents = collect($response->original?->getData()['page']['props']['calendarEvents'] ?? []);
+
+        $event = $calendarEvents->firstWhere('title', 'Sesion para calendario');
+        $this->assertNotNull($event);
+        $this->assertSame('2026-08-01', $event['workout_date']);
+        $this->assertSame('grupo', $event['target_scope']);
+        $this->assertContains($member1->id, $event['assigned_user_ids']);
+    }
+
+    public function test_calendar_page_includes_calendar_events_for_trainer(): void
+    {
+        ['trainer' => $trainer, 'member1' => $member1, 'predefined' => $predefined] = $this->makeClubWithTrainerAndMembers();
+
+        $this->actingAs($trainer)->post(route('workouts.store'), [
+            'title' => 'Sesion vista calendario',
+            'workout_date' => '2026-08-02',
+            'target_scope' => 'grupo',
+            'assigned_user_ids' => [$member1->id],
+            'exercises' => [[
+                'source' => 'predefined',
+                'exercise_id' => $predefined->id,
+                'sets' => 3,
+            ]],
+        ])->assertRedirect(route('exercises.library'));
+
+        $response = $this->actingAs($trainer)->get(route('calendar.index'));
+        $response->assertOk();
+
+        $calendarEvents = collect($response->original?->getData()['page']['props']['calendarEvents'] ?? []);
+        $event = $calendarEvents->firstWhere('title', 'Sesion vista calendario');
+
+        $this->assertNotNull($event);
+        $this->assertSame('2026-08-02', $event['workout_date']);
+        $this->assertSame('grupo', $event['target_scope']);
+        $this->assertContains($member1->id, $event['assigned_user_ids']);
+    }
+
     public function test_updating_grupo_workout_syncs_assignments_and_notifies_new_members(): void
     {
         Notification::fake();

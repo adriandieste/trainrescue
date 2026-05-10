@@ -21,6 +21,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/clubs/leave', [ClubController::class, 'leave'])->name('clubs.leave');
 
     Route::middleware('entrenador')->group(function () {
+        Route::get('/calendar', [ExerciseLibraryController::class, 'calendar'])->name('calendar.index');
         Route::get('/exercises/library', [ExerciseLibraryController::class, 'index'])->name('exercises.library');
         Route::post('/exercises/custom', [ExerciseLibraryController::class, 'storeCustom'])->name('exercises.custom.store');
         Route::patch('/exercises/custom/{customExercise}', [ExerciseLibraryController::class, 'updateCustom'])->name('exercises.custom.update');

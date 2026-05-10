@@ -76,6 +76,7 @@ class ExerciseLibraryController extends Controller
 
         $workouts = collect();
         $templates = collect();
+        $calendarEvents = collect();
         $editWorkoutId = null;
 
         $user        = $request->user();
@@ -145,11 +146,47 @@ class ExerciseLibraryController extends Controller
                     ->values();
             }
 
+            $calendarEvents = (clone $baseQuery)
+                ->whereNotNull('workout_date')
+                ->when($supportsTemplates, fn ($query) => $query->where('is_template', false))
+                ->orderBy('workout_date')
+                ->orderByDesc('created_at')
+                ->get()
+                ->map(fn (Workout $workout) => $this->mapWorkoutForCalendar($workout, $request))
+                ->values();
+
             $requestedEditId = $request->integer('edit_workout_id');
             if ($requestedEditId) {
                 $workoutToEdit = $workouts
                     ->concat($templates)
                     ->first(fn (array $item) => (int) $item['id'] === $requestedEditId && $item['can_edit']);
+
+                if (! $workoutToEdit) {
+                    $directWorkout = Workout::query()
+                        ->with([
+                            'exercises.predefinedExercise',
+                            'exercises.customExercise',
+                            ...($supportsAssignments ? ['assignedUsers'] : []),
+                        ])
+                        ->whereKey($requestedEditId)
+                        ->where(function ($query) use ($request) {
+                            $query->where('creator_user_id', $request->user()->id);
+
+                            if ($request->user()->club_id) {
+                                $query->orWhere('club_id', $request->user()->club_id);
+                            }
+                        })
+                        ->first();
+
+                    if ($directWorkout && Gate::forUser($request->user())->allows('update', $directWorkout)) {
+                        $mappedWorkout = $this->mapWorkoutForBuilder($directWorkout, $request);
+                        $workouts = collect([$mappedWorkout])
+                            ->concat($workouts)
+                            ->unique('id')
+                            ->values();
+                        $workoutToEdit = $mappedWorkout;
+                    }
+                }
 
                 $editWorkoutId = $workoutToEdit['id'] ?? null;
             }
@@ -160,10 +197,74 @@ class ExerciseLibraryController extends Controller
             'categories'      => $categories,
             'entrenamientos'  => $workouts,
             'plantillas'      => $templates,
+            'calendarEvents'  => $calendarEvents,
             'hasClub'         => (bool) $request->user()->club_id,
             'clubMembers'     => $clubMembers,
             'groups'          => $groups,
             'editWorkoutId'   => $editWorkoutId,
+        ]);
+    }
+
+    public function calendar(Request $request): Response
+    {
+        $user = $request->user();
+
+        $clubMembers = collect();
+        $groups = collect();
+        if ($user->club_id) {
+            $clubMembers = User::where('club_id', $user->club_id)
+                ->where('id', '!=', $user->id)
+                ->orderBy('name')
+                ->get()
+                ->map(fn (User $member) => [
+                    'id' => $member->id,
+                    'name' => $member->name,
+                    'role_label' => $member->rol === 'entrenador' ? 'Entrenador' : 'Socorrista',
+                ])
+                ->values();
+
+            $groups = \App\Models\Group::where('club_id', $user->club_id)
+                ->with('users')
+                ->get()
+                ->map(fn ($group) => [
+                    'id' => $group->id,
+                    'name' => $group->name,
+                    'user_ids' => $group->users->pluck('id')->toArray(),
+                    'member_count' => $group->users->count(),
+                ])
+                ->values();
+        }
+
+        $calendarEvents = collect();
+        if (Schema::hasTable('workouts')) {
+            $supportsAssignments = Schema::hasTable('workout_assignments');
+            $supportsTemplates = Schema::hasColumn('workouts', 'is_template');
+
+            $calendarEvents = Workout::query()
+                ->with([
+                    ...($supportsAssignments ? ['assignedUsers'] : []),
+                ])
+                ->whereNotNull('workout_date')
+                ->where(function ($query) use ($user) {
+                    $query->where('creator_user_id', $user->id);
+
+                    if ($user->club_id) {
+                        $query->orWhere('club_id', $user->club_id);
+                    }
+                })
+                ->when($supportsTemplates, fn ($query) => $query->where('is_template', false))
+                ->orderBy('workout_date')
+                ->orderByDesc('created_at')
+                ->get()
+                ->map(fn (Workout $workout) => $this->mapWorkoutForCalendar($workout, $request))
+                ->values();
+        }
+
+        return Inertia::render('Ejercicios/Calendario', [
+            'calendarEvents' => $calendarEvents,
+            'hasClub' => (bool) $user->club_id,
+            'clubMembers' => $clubMembers,
+            'groups' => $groups,
         ]);
     }
 
@@ -286,6 +387,20 @@ class ExerciseLibraryController extends Controller
                 ? $workout->assignedUsers->pluck('id')->values()->all()
                 : [],
             'exercises'       => $lines,
+        ];
+    }
+
+    private function mapWorkoutForCalendar(Workout $workout, Request $request): array
+    {
+        return [
+            'id'                => $workout->id,
+            'title'             => $workout->title,
+            'workout_date'      => $workout->workout_date?->format('Y-m-d'),
+            'target_scope'      => $workout->target_scope,
+            'can_edit'          => Gate::forUser($request->user())->allows('update', $workout),
+            'assigned_user_ids' => $workout->relationLoaded('assignedUsers')
+                ? $workout->assignedUsers->pluck('id')->values()->all()
+                : [],
         ];
     }
 }
