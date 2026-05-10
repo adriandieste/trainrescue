@@ -7,6 +7,11 @@ use App\Models\Workout;
 
 class WorkoutPolicy
 {
+    public function duplicate(User $user, Workout $workout): bool
+    {
+        return $this->update($user, $workout);
+    }
+
     public function update(User $user, Workout $workout): bool
     {
         if ($user->rol !== 'entrenador') {

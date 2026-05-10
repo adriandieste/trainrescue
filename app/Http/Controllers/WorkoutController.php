@@ -7,6 +7,7 @@ use App\Models\CustomExercise;
 use App\Models\PredefinedExercise;
 use App\Models\Workout;
 use App\Models\WorkoutExercise;
+use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -70,6 +71,45 @@ class WorkoutController extends Controller
         return redirect()
             ->route('exercises.library')
             ->with('success', $successMessage);
+    }
+
+    public function duplicate(Request $request, Workout $workout): RedirectResponse
+    {
+        Gate::authorize('duplicate', $workout);
+
+        $trainer = $request->user();
+
+        $duplicatedWorkout = DB::transaction(function () use ($workout, $trainer) {
+            $workout->loadMissing('exercises');
+
+            $copy = Workout::create([
+                'creator_user_id' => $trainer->id,
+                'club_id' => $workout->target_scope === 'club' ? $trainer->club_id : null,
+                'title' => $workout->title,
+                'workout_date' => $workout->workout_date,
+                'target_scope' => $workout->target_scope,
+                'is_template' => (bool) $workout->is_template,
+            ]);
+
+            foreach ($workout->exercises as $line) {
+                WorkoutExercise::create([
+                    'workout_id' => $copy->id,
+                    'predefined_exercise_id' => $line->predefined_exercise_id,
+                    'custom_exercise_id' => $line->custom_exercise_id,
+                    'sort_order' => $line->sort_order,
+                    'sets' => $line->sets,
+                    'reps' => null,
+                    'meters' => $line->meters,
+                    'rest_seconds' => $line->rest_seconds,
+                ]);
+            }
+
+            return $copy;
+        });
+
+        return redirect()
+            ->route('exercises.library', ['edit_workout_id' => $duplicatedWorkout->id])
+            ->with('success', 'Entrenamiento duplicado correctamente. Ya puedes ajustar la copia.');
     }
 
     private function syncWorkoutExercises(Workout $workout, array $exerciseInputs, int $trainerId): void

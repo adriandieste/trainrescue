@@ -75,6 +75,7 @@ class ExerciseLibraryController extends Controller
 
         $workouts = collect();
         $templates = collect();
+        $editWorkoutId = null;
 
         if (Schema::hasTable('workouts') && Schema::hasTable('workout_exercises')) {
             $baseQuery = Workout::query()
@@ -108,6 +109,15 @@ class ExerciseLibraryController extends Controller
                     ->map(fn (Workout $workout) => $this->mapWorkoutForBuilder($workout, $request))
                     ->values();
             }
+
+            $requestedEditId = $request->integer('edit_workout_id');
+            if ($requestedEditId) {
+                $workoutToEdit = $workouts
+                    ->concat($templates)
+                    ->first(fn (array $item) => (int) $item['id'] === $requestedEditId && $item['can_edit']);
+
+                $editWorkoutId = $workoutToEdit['id'] ?? null;
+            }
         }
 
         return Inertia::render('Ejercicios/Entrenos', [
@@ -116,6 +126,7 @@ class ExerciseLibraryController extends Controller
             'entrenamientos' => $workouts,
             'plantillas' => $templates,
             'hasClub' => (bool) $request->user()->club_id,
+            'editWorkoutId' => $editWorkoutId,
         ]);
     }
 
