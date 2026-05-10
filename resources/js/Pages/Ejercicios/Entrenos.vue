@@ -24,6 +24,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    editWorkoutId: {
+        type: Number,
+        default: null,
+    },
 });
 
 const page = usePage();
@@ -88,6 +92,22 @@ const entrenamientoForm = useForm({
 const draggedTrainingIndex = ref(null);
 const showCreateTrainingForm = ref(false);
 const editingTrainingId = ref(null);
+const trainingBuilderSectionRef = ref(null);
+
+function scrollToTrainingBuilder() {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    window.requestAnimationFrame(() => {
+        if (trainingBuilderSectionRef.value?.scrollIntoView) {
+            trainingBuilderSectionRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
 
 const isTrainingInvalid = computed(() => {
     if (!entrenamientoForm.title.trim()) {
@@ -148,7 +168,26 @@ function openTrainingEditor(entrenamiento) {
         meters: item.meters ?? null,
         rest_seconds: item.rest_seconds ?? 45,
     }));
+
+    scrollToTrainingBuilder();
 }
+
+function openTrainingEditorById(trainingId) {
+    if (!trainingId) {
+        return;
+    }
+
+    const toEdit = [...entrenamientos.value, ...plantillas.value]
+        .find((item) => Number(item.id) === Number(trainingId) && item.can_edit);
+
+    if (toEdit) {
+        openTrainingEditor(toEdit);
+    }
+}
+
+watch(() => props.editWorkoutId, (trainingId) => {
+    openTrainingEditorById(trainingId);
+}, { immediate: true });
 
 function addExerciseToTraining(exercise) {
     entrenamientoForm.clearErrors();
@@ -179,6 +218,19 @@ function useTemplate(template) {
         meters: item.meters ?? null,
         rest_seconds: item.rest_seconds ?? 45,
     }));
+
+    scrollToTrainingBuilder();
+}
+
+function duplicateTraining(training) {
+    scrollToTrainingBuilder();
+
+    router.post(route('workouts.duplicate', training.id), {}, {
+        preserveScroll: false,
+        onSuccess: () => {
+            scrollToTrainingBuilder();
+        },
+    });
 }
 
 const pendingRemoveIndex = ref(null);
@@ -431,7 +483,7 @@ function formatCategory(category) {
                 {{ flash.error }}
             </div>
 
-            <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+            <div ref="trainingBuilderSectionRef" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                 <div class="border-b border-gray-200 p-6">
                     <div class="flex items-start justify-between gap-4">
                         <div>
@@ -872,14 +924,22 @@ function formatCategory(category) {
                                         <p class="font-semibold text-gray-800">{{ entrenamiento.title }}</p>
                                         <p class="text-gray-500">{{ entrenamiento.workout_date }} · {{ entrenamiento.target_scope === 'club' ? 'Club' : 'Personal' }}</p>
                                     </div>
-                                    <button
-                                        v-if="entrenamiento.can_edit"
-                                        type="button"
-                                        class="rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-100"
-                                        @click="openTrainingEditor(entrenamiento)"
-                                    >
-                                        Editar
-                                    </button>
+                                    <div v-if="entrenamiento.can_edit" class="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            class="rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-100"
+                                            @click="openTrainingEditor(entrenamiento)"
+                                        >
+                                            Editar
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                                            @click="duplicateTraining(entrenamiento)"
+                                        >
+                                            Duplicar
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

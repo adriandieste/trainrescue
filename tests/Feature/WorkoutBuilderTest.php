@@ -372,6 +372,152 @@ class WorkoutBuilderTest extends TestCase
         ]);
     }
 
+    public function test_trainer_can_duplicate_workout_with_deep_copy_and_edit_it_independently(): void
+    {
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+
+        $predefined = PredefinedExercise::create([
+            'name' => 'Arrastre tecnico',
+            'category' => 'rescate',
+            'technical_description' => 'Bloque tecnico de arrastre.',
+            'materials' => ['maniqui'],
+            'is_active' => true,
+        ]);
+
+        $custom = CustomExercise::create([
+            'user_id' => $trainer->id,
+            'name' => 'Apnea controlada',
+            'description' => 'Trabajo de apnea por tramos.',
+            'materials' => 'tabla',
+        ]);
+
+        $original = Workout::create([
+            'creator_user_id' => $trainer->id,
+            'club_id' => null,
+            'title' => 'Sesion base',
+            'workout_date' => '2026-05-18',
+            'target_scope' => 'personal',
+            'is_template' => false,
+        ]);
+
+        $original->exercises()->create([
+            'predefined_exercise_id' => $predefined->id,
+            'custom_exercise_id' => null,
+            'sort_order' => 0,
+            'sets' => 4,
+            'reps' => null,
+            'meters' => 50,
+            'rest_seconds' => 30,
+        ]);
+
+        $original->exercises()->create([
+            'predefined_exercise_id' => null,
+            'custom_exercise_id' => $custom->id,
+            'sort_order' => 1,
+            'sets' => 3,
+            'reps' => null,
+            'meters' => 75,
+            'rest_seconds' => 45,
+        ]);
+
+        $response = $this
+            ->actingAs($trainer)
+            ->post(route('workouts.duplicate', $original));
+
+        $duplicate = Workout::query()
+            ->where('creator_user_id', $trainer->id)
+            ->whereKeyNot($original->id)
+            ->first();
+
+        $this->assertNotNull($duplicate);
+
+        $response
+            ->assertRedirect(route('exercises.library', ['edit_workout_id' => $duplicate->id]))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('workouts', [
+            'id' => $duplicate->id,
+            'title' => $original->title,
+            'workout_date' => '2026-05-18',
+            'target_scope' => $original->target_scope,
+            'is_template' => false,
+        ]);
+
+        $originalLines = $original->exercises()->orderBy('sort_order')->get();
+        $duplicateLines = $duplicate->exercises()->orderBy('sort_order')->get();
+
+        $this->assertCount(2, $originalLines);
+        $this->assertCount(2, $duplicateLines);
+
+        $this->assertSame($originalLines[0]->predefined_exercise_id, $duplicateLines[0]->predefined_exercise_id);
+        $this->assertSame($originalLines[0]->sets, $duplicateLines[0]->sets);
+        $this->assertSame($originalLines[0]->meters, $duplicateLines[0]->meters);
+        $this->assertSame($originalLines[0]->rest_seconds, $duplicateLines[0]->rest_seconds);
+
+        $this->assertSame($originalLines[1]->custom_exercise_id, $duplicateLines[1]->custom_exercise_id);
+        $this->assertSame($originalLines[1]->sets, $duplicateLines[1]->sets);
+
+        $this
+            ->actingAs($trainer)
+            ->patch(route('workouts.update', $duplicate), [
+                'title' => 'Sesion duplicada editada',
+                'workout_date' => '2026-05-25',
+                'target_scope' => 'personal',
+                'is_template' => false,
+                'exercises' => [[
+                    'source' => 'predefined',
+                    'exercise_id' => $predefined->id,
+                    'sets' => 6,
+                    'meters' => 100,
+                    'rest_seconds' => 60,
+                ]],
+            ])
+            ->assertRedirect(route('exercises.library'));
+
+        $this->assertDatabaseHas('workouts', [
+            'id' => $original->id,
+            'title' => 'Sesion base',
+            'workout_date' => '2026-05-18',
+        ]);
+
+        $this->assertDatabaseHas('workouts', [
+            'id' => $duplicate->id,
+            'title' => 'Sesion duplicada editada',
+            'workout_date' => '2026-05-25',
+        ]);
+
+        $this->assertDatabaseCount('workout_exercises', 3);
+        $this->assertDatabaseHas('workout_exercises', [
+            'workout_id' => $original->id,
+            'sort_order' => 1,
+            'custom_exercise_id' => $custom->id,
+            'sets' => 3,
+        ]);
+    }
+
+    public function test_trainer_cannot_duplicate_workout_without_permission(): void
+    {
+        $owner = User::factory()->create(['rol' => 'entrenador']);
+        $intruder = User::factory()->create(['rol' => 'entrenador']);
+
+        $workout = Workout::create([
+            'creator_user_id' => $owner->id,
+            'club_id' => null,
+            'title' => 'Sesion privada',
+            'workout_date' => '2026-05-19',
+            'target_scope' => 'personal',
+            'is_template' => false,
+        ]);
+
+        $response = $this
+            ->actingAs($intruder)
+            ->post(route('workouts.duplicate', $workout));
+
+        $response->assertForbidden();
+
+        $this->assertDatabaseCount('workouts', 1);
+    }
+
     public function test_non_owner_non_admin_cannot_update_workout(): void
     {
         $admin = User::factory()->create(['rol' => 'entrenador']);
