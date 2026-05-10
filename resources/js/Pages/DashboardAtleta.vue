@@ -8,6 +8,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    entrenamientoHoy: {
+        type: Object,
+        default: null,
+    },
     clubmates: {
         type: Array,
         default: () => [],
@@ -51,6 +55,7 @@ const pastWorkouts = computed(() => {
     const today = new Date().toISOString().split('T')[0];
     return props.entrenamientos.filter(e => e.workout_date < today);
 });
+const todayWorkout = computed(() => props.entrenamientoHoy ?? null);
 </script>
 <template>
     <Head title="Dashboard Socorrista" />
@@ -179,8 +184,43 @@ const pastWorkouts = computed(() => {
                         </div>
                     </div>
                 </div>
+
+                <!-- Entrenamiento de hoy -->
+                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                    <div class="border-b border-gray-200 p-6">
+                        <h2 class="text-lg font-semibold text-gray-900">Entrenamiento de hoy</h2>
+                        <p class="mt-1 text-sm text-gray-600">Acceso rápido a la sesión asignada para la fecha actual.</p>
+                    </div>
+
+                    <div v-if="todayWorkout" class="p-6">
+                        <div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-blue-700">Hoy · {{ formatDate(todayWorkout.workout_date) }}</p>
+                                    <h3 class="mt-1 text-base font-semibold text-gray-900">{{ todayWorkout.title }}</h3>
+                                    <p class="mt-1 text-sm text-gray-600">
+                                        {{ todayWorkout.exercises.length }} {{ todayWorkout.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }} programados
+                                    </p>
+                                </div>
+                                <a
+                                    :href="`#workout-${todayWorkout.id}`"
+                                    class="inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700"
+                                >
+                                    Ver detalle completo
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-else class="p-6">
+                        <p class="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
+                            Día de descanso
+                        </p>
+                    </div>
+                </div>
+
                 <!-- Entrenamientos programados -->
-                <div v-if="currentClub" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                <div id="workouts-detail" v-if="currentClub" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                     <div class="border-b border-gray-200 p-6">
                         <h2 class="text-lg font-semibold text-gray-900">Próximos entrenamientos</h2>
                         <p class="mt-1 text-sm text-gray-600">Sesiones programadas por tu entrenador para el club.</p>
@@ -192,6 +232,7 @@ const pastWorkouts = computed(() => {
                         <div
                             v-for="workout in upcomingWorkouts"
                             :key="workout.id"
+                            :id="`workout-${workout.id}`"
                             class="p-5"
                         >
                             <div class="mb-3 flex items-center justify-between gap-2">
