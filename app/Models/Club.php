@@ -40,6 +40,11 @@ class Club extends Model
         return $this->hasMany(ClubInvitation::class);
     }
 
+    public function groups(): HasMany
+    {
+        return $this->hasMany(Group::class);
+    }
+
     public function admin(): BelongsTo
     {
         return $this->belongsTo(User::class, 'admin_user_id');
