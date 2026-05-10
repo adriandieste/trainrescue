@@ -9,7 +9,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -43,20 +42,17 @@ class RegisteredUserController extends Controller
                 'regex:/[^a-zA-Z0-9]/',
                 'confirmed',
             ],
-            'rol' => ['required', 'string', 'in:socorrista,entrenador'],
         ], [
             'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
             'password.regex' => 'La contraseña debe incluir mayúsculas, minúsculas, números y símbolos.',
             'password.confirmed' => 'La confirmación de la contraseña no coincide.',
-            'rol.required' => 'Debes seleccionar un rol.',
-            'rol.in' => 'El rol seleccionado no es válido.',
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'rol' => $request->rol,
+            'rol' => null,
         ]);
 
         event(new Registered($user));

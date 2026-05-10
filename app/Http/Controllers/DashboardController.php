@@ -21,6 +21,19 @@ class DashboardController extends Controller
     {
         $user = $request->user()->load('club');
 
+        // Usuario sin rol: mostrar pantalla de espera mientras el modal de onboarding
+        // recoge su elección (mustSelectRole=true se comparte via HandleInertiaRequests)
+        if ($user->rol === null) {
+            return Inertia::render('DashboardAtleta', [
+                'invitationsTitle'   => 'Bienvenida',
+                'pendingInvitations' => [],
+                'clubmates'          => [],
+                'entrenamientos'     => [],
+                'entrenamientoHoy'   => null,
+                'notificaciones'     => [],
+            ]);
+        }
+
         if ($user->rol === 'entrenador') {
             $pendingCount  = 0;
             $members       = null;

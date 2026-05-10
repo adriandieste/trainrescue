@@ -37,6 +37,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => fn () => $request->user()?->load('club'),
             ],
+            'mustSelectRole' => fn () => $request->user() !== null && $request->user()->rol === null,
             'notifications' => fn () => $this->resolveNotifications($request),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
