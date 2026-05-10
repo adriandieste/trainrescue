@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\GuardarEjercicioPersonalizadoRequest;
 use App\Models\CustomExercise;
 use App\Models\PredefinedExercise;
+use App\Models\User;
 use App\Models\Workout;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -77,9 +78,29 @@ class ExerciseLibraryController extends Controller
         $templates = collect();
         $editWorkoutId = null;
 
+        $user        = $request->user();
+        $clubMembers = collect();
+        if ($user->club_id) {
+            $clubMembers = User::where('club_id', $user->club_id)
+                ->where('id', '!=', $user->id)
+                ->orderBy('name')
+                ->get()
+                ->map(fn (User $member) => [
+                    'id'         => $member->id,
+                    'name'       => $member->name,
+                    'role_label' => $member->rol === 'entrenador' ? 'Entrenador' : 'Socorrista',
+                ])
+                ->values();
+        }
+
         if (Schema::hasTable('workouts') && Schema::hasTable('workout_exercises')) {
+            $supportsAssignments = Schema::hasTable('workout_assignments');
             $baseQuery = Workout::query()
-                ->with(['exercises.predefinedExercise', 'exercises.customExercise'])
+                ->with([
+                    'exercises.predefinedExercise',
+                    'exercises.customExercise',
+                    ...($supportsAssignments ? ['assignedUsers'] : []),
+                ])
                 ->where(function ($query) use ($request) {
                     $query->where('creator_user_id', $request->user()->id);
 
@@ -121,12 +142,13 @@ class ExerciseLibraryController extends Controller
         }
 
         return Inertia::render('Ejercicios/Entrenos', [
-            'exercises' => $exercises,
-            'categories' => $categories,
-            'entrenamientos' => $workouts,
-            'plantillas' => $templates,
-            'hasClub' => (bool) $request->user()->club_id,
-            'editWorkoutId' => $editWorkoutId,
+            'exercises'       => $exercises,
+            'categories'      => $categories,
+            'entrenamientos'  => $workouts,
+            'plantillas'      => $templates,
+            'hasClub'         => (bool) $request->user()->club_id,
+            'clubMembers'     => $clubMembers,
+            'editWorkoutId'   => $editWorkoutId,
         ]);
     }
 
@@ -239,13 +261,16 @@ class ExerciseLibraryController extends Controller
             ->values();
 
         return [
-            'id' => $workout->id,
-            'title' => $workout->title,
-            'workout_date' => $workout->workout_date?->format('Y-m-d'),
-            'target_scope' => $workout->target_scope,
-            'is_template' => (bool) $workout->is_template,
-            'can_edit' => Gate::forUser($request->user())->allows('update', $workout),
-            'exercises' => $lines,
+            'id'              => $workout->id,
+            'title'           => $workout->title,
+            'workout_date'    => $workout->workout_date?->format('Y-m-d'),
+            'target_scope'    => $workout->target_scope,
+            'is_template'     => (bool) $workout->is_template,
+            'can_edit'        => Gate::forUser($request->user())->allows('update', $workout),
+            'assigned_user_ids' => $workout->relationLoaded('assignedUsers')
+                ? $workout->assignedUsers->pluck('id')->values()->all()
+                : [],
+            'exercises'       => $lines,
         ];
     }
 }

@@ -21,29 +21,33 @@ class WorkoutController extends Controller
     public function store(GuardarWorkoutRequest $request): RedirectResponse
     {
         $validated = $request->validated();
-        $trainer = $request->user();
+        $trainer   = $request->user();
 
         $workout = DB::transaction(function () use ($validated, $trainer) {
             $workout = Workout::create([
                 'creator_user_id' => $trainer->id,
-                'club_id' => $validated['target_scope'] === 'club' ? $trainer->club_id : null,
-                'title' => $validated['title'],
+                'club_id'         => in_array($validated['target_scope'], ['club', 'grupo'], true)
+                    ? $trainer->club_id
+                    : null,
+                'title'        => $validated['title'],
                 'workout_date' => $validated['is_template'] ? null : $validated['workout_date'],
                 'target_scope' => $validated['target_scope'],
-                'is_template' => (bool) $validated['is_template'],
+                'is_template'  => (bool) $validated['is_template'],
             ]);
 
             $this->syncWorkoutExercises($workout, $validated['exercises'], $trainer->id);
 
+            if ($validated['target_scope'] === 'grupo') {
+                $workout->assignedUsers()->sync($validated['assigned_user_ids'] ?? []);
+            }
+
             return $workout;
         });
 
-        $successMessage = $workout->is_template
-            ? 'Plantilla guardada correctamente.'
-            : 'Entrenamiento creado correctamente para el '.$workout->workout_date?->format('d/m/Y').'.';
+        $successMessage = $this->buildSuccessMessage($workout, $validated, 'created');
 
-        if (! $workout->is_template && $workout->target_scope === 'club' && $workout->club_id) {
-            $this->notifyClubMembers($workout, $trainer->id);
+        if (! $workout->is_template) {
+            $this->dispatchNotifications($workout, $validated, $trainer->id);
         }
 
         return redirect()
@@ -56,28 +60,35 @@ class WorkoutController extends Controller
         Gate::authorize('update', $workout);
 
         $validated = $request->validated();
-        $trainer = $request->user();
+        $trainer   = $request->user();
 
         DB::transaction(function () use ($validated, $trainer, $workout) {
             $workout->update([
-                'club_id' => $validated['target_scope'] === 'club' ? $trainer->club_id : null,
-                'title' => $validated['title'],
+                'club_id'      => in_array($validated['target_scope'], ['club', 'grupo'], true)
+                    ? $trainer->club_id
+                    : null,
+                'title'        => $validated['title'],
                 'workout_date' => $validated['is_template'] ? null : $validated['workout_date'],
                 'target_scope' => $validated['target_scope'],
-                'is_template' => (bool) $validated['is_template'],
+                'is_template'  => (bool) $validated['is_template'],
             ]);
 
             $workout->exercises()->delete();
             $this->syncWorkoutExercises($workout, $validated['exercises'], $trainer->id);
+
+            // Sync group assignments (clear if no longer a grupo workout)
+            if ($validated['target_scope'] === 'grupo') {
+                $workout->assignedUsers()->sync($validated['assigned_user_ids'] ?? []);
+            } else {
+                $workout->assignedUsers()->detach();
+            }
         });
 
-        $successMessage = $workout->fresh()->is_template
-            ? 'Plantilla actualizada correctamente.'
-            : 'Entrenamiento actualizado correctamente.';
+        $fresh          = $workout->fresh();
+        $successMessage = $this->buildSuccessMessage($fresh, $validated, 'updated');
 
-        $fresh = $workout->fresh();
-        if (! $fresh->is_template && $fresh->target_scope === 'club' && $fresh->club_id) {
-            $this->notifyClubMembers($fresh, $trainer->id);
+        if (! $fresh->is_template) {
+            $this->dispatchNotifications($fresh, $validated, $trainer->id);
         }
 
         return redirect()
@@ -92,28 +103,35 @@ class WorkoutController extends Controller
         $trainer = $request->user();
 
         $duplicatedWorkout = DB::transaction(function () use ($workout, $trainer) {
-            $workout->loadMissing('exercises');
+            $workout->loadMissing(['exercises', 'assignedUsers']);
 
             $copy = Workout::create([
                 'creator_user_id' => $trainer->id,
-                'club_id' => $workout->target_scope === 'club' ? $trainer->club_id : null,
-                'title' => $workout->title,
+                'club_id'         => in_array($workout->target_scope, ['club', 'grupo'], true)
+                    ? $trainer->club_id
+                    : null,
+                'title'        => $workout->title,
                 'workout_date' => $workout->workout_date,
                 'target_scope' => $workout->target_scope,
-                'is_template' => (bool) $workout->is_template,
+                'is_template'  => (bool) $workout->is_template,
             ]);
 
             foreach ($workout->exercises as $line) {
                 WorkoutExercise::create([
-                    'workout_id' => $copy->id,
+                    'workout_id'           => $copy->id,
                     'predefined_exercise_id' => $line->predefined_exercise_id,
-                    'custom_exercise_id' => $line->custom_exercise_id,
-                    'sort_order' => $line->sort_order,
-                    'sets' => $line->sets,
-                    'reps' => null,
-                    'meters' => $line->meters,
-                    'rest_seconds' => $line->rest_seconds,
+                    'custom_exercise_id'   => $line->custom_exercise_id,
+                    'sort_order'           => $line->sort_order,
+                    'sets'                 => $line->sets,
+                    'reps'                 => null,
+                    'meters'               => $line->meters,
+                    'rest_seconds'         => $line->rest_seconds,
                 ]);
+            }
+
+            // Copy group assignments to the duplicate
+            if ($workout->target_scope === 'grupo' && $workout->assignedUsers->isNotEmpty()) {
+                $copy->assignedUsers()->sync($workout->assignedUsers->pluck('id')->all());
             }
 
             return $copy;
@@ -124,27 +142,70 @@ class WorkoutController extends Controller
             ->with('success', 'Entrenamiento duplicado correctamente. Ya puedes ajustar la copia.');
     }
 
+    // ─── Private helpers ─────────────────────────────────────────────────────
+
+    private function buildSuccessMessage(Workout $workout, array $validated, string $action): string
+    {
+        if ($workout->is_template) {
+            return $action === 'created'
+                ? 'Plantilla guardada correctamente.'
+                : 'Plantilla actualizada correctamente.';
+        }
+
+        if ($workout->target_scope === 'grupo') {
+            $count = count($validated['assigned_user_ids'] ?? []);
+            $noun  = $count === 1 ? 'atleta' : 'atletas';
+            return "Sesión asignada correctamente a {$count} {$noun}.";
+        }
+
+        return $action === 'created'
+            ? 'Entrenamiento creado correctamente para el '.$workout->workout_date?->format('d/m/Y').'.'
+            : 'Entrenamiento actualizado correctamente.';
+    }
+
+    private function dispatchNotifications(Workout $workout, array $validated, int $trainerId): void
+    {
+        match ($workout->target_scope) {
+            'club'  => $this->notifyClubMembers($workout, $trainerId),
+            'grupo' => $this->notifyGroupMembers($workout, $validated['assigned_user_ids'] ?? [], $trainerId),
+            default => null,
+        };
+    }
+
     private function notifyClubMembers(Workout $workout, int $excludeUserId): void
     {
         $members = User::where('club_id', $workout->club_id)
             ->where('id', '!=', $excludeUserId)
             ->get();
 
-        if ($members->isEmpty()) {
+        if ($members->isNotEmpty()) {
+            Notification::send($members, new WorkoutAsignadoNotification($workout));
+        }
+    }
+
+    private function notifyGroupMembers(Workout $workout, array $userIds, int $excludeUserId): void
+    {
+        if (empty($userIds)) {
             return;
         }
 
-        Notification::send($members, new WorkoutAsignadoNotification($workout));
+        $members = User::whereIn('id', $userIds)
+            ->where('id', '!=', $excludeUserId)
+            ->get();
+
+        if ($members->isNotEmpty()) {
+            Notification::send($members, new WorkoutAsignadoNotification($workout));
+        }
     }
 
     private function syncWorkoutExercises(Workout $workout, array $exerciseInputs, int $trainerId): void
     {
         foreach ($exerciseInputs as $index => $exerciseInput) {
-            $source = $exerciseInput['source'];
+            $source     = $exerciseInput['source'];
             $exerciseId = (int) $exerciseInput['exercise_id'];
 
             $predefinedId = null;
-            $customId = null;
+            $customId     = null;
 
             if ($source === 'predefined') {
                 $exists = PredefinedExercise::query()
@@ -177,14 +238,14 @@ class WorkoutController extends Controller
             }
 
             WorkoutExercise::create([
-                'workout_id' => $workout->id,
+                'workout_id'             => $workout->id,
                 'predefined_exercise_id' => $predefinedId,
-                'custom_exercise_id' => $customId,
-                'sort_order' => $index,
-                'sets' => $exerciseInput['sets'],
-                'reps' => null,
-                'meters' => $exerciseInput['meters'] ?? null,
-                'rest_seconds' => $exerciseInput['rest_seconds'] ?? null,
+                'custom_exercise_id'     => $customId,
+                'sort_order'             => $index,
+                'sets'                   => $exerciseInput['sets'],
+                'reps'                   => null,
+                'meters'                 => $exerciseInput['meters'] ?? null,
+                'rest_seconds'           => $exerciseInput['rest_seconds'] ?? null,
             ]);
         }
     }
