@@ -5,6 +5,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ClubController;
 use App\Http\Controllers\ClubInvitationController;
 use App\Http\Controllers\ExerciseLibraryController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\WorkoutController;
 use Illuminate\Support\Facades\Route;
 
@@ -46,6 +47,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/club-invitations/{clubInvitation}/accept', [ClubInvitationController::class, 'accept'])->name('club-invitations.accept');
     Route::post('/club-invitations/{clubInvitation}/reject', [ClubInvitationController::class, 'reject'])->name('club-invitations.reject');
+
+    Route::patch('/notificaciones/{id}/leer', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::patch('/notificaciones/leer-todas', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
 
 });
 

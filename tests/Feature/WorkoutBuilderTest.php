@@ -7,7 +7,9 @@ use App\Models\CustomExercise;
 use App\Models\PredefinedExercise;
 use App\Models\User;
 use App\Models\Workout;
+use App\Notifications\WorkoutAsignadoNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class WorkoutBuilderTest extends TestCase
@@ -574,5 +576,133 @@ class WorkoutBuilderTest extends TestCase
             'id' => $workout->id,
             'title' => 'Sesion protegida',
         ]);
+    }
+
+    public function test_creating_club_workout_notifies_all_club_members(): void
+    {
+        Notification::fake();
+
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+        $club = Club::create([
+            'name' => 'Club Notificaciones',
+            'description' => 'Test',
+            'admin_user_id' => $trainer->id,
+        ]);
+        $trainer->update(['club_id' => $club->id]);
+
+        $socorrista1 = User::factory()->create(['rol' => 'socorrista', 'club_id' => $club->id]);
+        $socorrista2 = User::factory()->create(['rol' => 'socorrista', 'club_id' => $club->id]);
+
+        $predefined = PredefinedExercise::create([
+            'name' => 'Circuito club',
+            'category' => 'tecnica',
+            'technical_description' => 'Sesion de club.',
+            'materials' => ['tubo'],
+            'is_active' => true,
+        ]);
+
+        $this
+            ->actingAs($trainer)
+            ->post(route('workouts.store'), [
+                'title' => 'Sesion de club asignada',
+                'workout_date' => '2026-05-20',
+                'target_scope' => 'club',
+                'exercises' => [[
+                    'source' => 'predefined',
+                    'exercise_id' => $predefined->id,
+                    'sets' => 3,
+                    'meters' => 50,
+                    'rest_seconds' => 30,
+                ]],
+            ])
+            ->assertRedirect(route('exercises.library'))
+            ->assertSessionHas('success');
+
+        Notification::assertSentTo($socorrista1, WorkoutAsignadoNotification::class);
+        Notification::assertSentTo($socorrista2, WorkoutAsignadoNotification::class);
+        Notification::assertNotSentTo($trainer, WorkoutAsignadoNotification::class);
+    }
+
+    public function test_creating_personal_workout_does_not_notify(): void
+    {
+        Notification::fake();
+
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+
+        $predefined = PredefinedExercise::create([
+            'name' => 'Ejercicio personal',
+            'category' => 'tecnica',
+            'technical_description' => 'Solo personal.',
+            'materials' => ['tabla'],
+            'is_active' => true,
+        ]);
+
+        $this
+            ->actingAs($trainer)
+            ->post(route('workouts.store'), [
+                'title' => 'Sesion personal',
+                'workout_date' => '2026-05-21',
+                'target_scope' => 'personal',
+                'exercises' => [[
+                    'source' => 'predefined',
+                    'exercise_id' => $predefined->id,
+                    'sets' => 3,
+                    'meters' => null,
+                    'rest_seconds' => null,
+                ]],
+            ]);
+
+        Notification::assertNothingSent();
+    }
+
+    public function test_updating_club_workout_notifies_members_again(): void
+    {
+        Notification::fake();
+
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+        $club = Club::create([
+            'name' => 'Club Update Test',
+            'description' => 'Test',
+            'admin_user_id' => $trainer->id,
+        ]);
+        $trainer->update(['club_id' => $club->id]);
+
+        $socorrista = User::factory()->create(['rol' => 'socorrista', 'club_id' => $club->id]);
+
+        $predefined = PredefinedExercise::create([
+            'name' => 'Tecnica update',
+            'category' => 'rescate',
+            'technical_description' => 'Update test.',
+            'materials' => ['maniqui'],
+            'is_active' => true,
+        ]);
+
+        $workout = Workout::create([
+            'creator_user_id' => $trainer->id,
+            'club_id' => $club->id,
+            'title' => 'Sesion original club',
+            'workout_date' => '2026-05-22',
+            'target_scope' => 'club',
+            'is_template' => false,
+        ]);
+
+        $this
+            ->actingAs($trainer)
+            ->patch(route('workouts.update', $workout), [
+                'title' => 'Sesion club actualizada',
+                'workout_date' => '2026-05-29',
+                'target_scope' => 'club',
+                'exercises' => [[
+                    'source' => 'predefined',
+                    'exercise_id' => $predefined->id,
+                    'sets' => 4,
+                    'meters' => 75,
+                    'rest_seconds' => 45,
+                ]],
+            ])
+            ->assertRedirect(route('exercises.library'));
+
+        Notification::assertSentTo($socorrista, WorkoutAsignadoNotification::class);
+        Notification::assertNotSentTo($trainer, WorkoutAsignadoNotification::class);
     }
 }

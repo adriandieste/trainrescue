@@ -6,6 +6,7 @@ use App\Models\ClubInvitation;
 use App\Models\ClubJoinRequest;
 use App\Models\User;
 use App\Models\Workout;
+use App\Notifications\WorkoutAsignadoNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
@@ -208,9 +209,32 @@ class DashboardController extends Controller
                 'pendingInvitations' => $pendingInvitations,
                 'clubmates'          => $clubmates,
                 'entrenamientos'     => $entrenamientos,
+                'notificaciones'     => $this->buildNotificaciones($user),
             ]);
         }
         abort(403, 'Acceso denegado: Rol no reconocido.');
+    }
+
+    private function buildNotificaciones(User $user): array
+    {
+        if (! Schema::hasTable('notifications')) {
+            return [];
+        }
+
+        return $user->unreadNotifications()
+            ->where('type', WorkoutAsignadoNotification::class)
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(fn ($n) => [
+                'id'                     => $n->id,
+                'workout_id'             => $n->data['workout_id'],
+                'workout_title'          => $n->data['workout_title'],
+                'workout_date_formatted' => $n->data['workout_date_formatted'] ?? null,
+                'created_at'             => $n->created_at->diffForHumans(),
+            ])
+            ->values()
+            ->all();
     }
 }
 
