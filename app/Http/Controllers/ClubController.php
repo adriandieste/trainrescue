@@ -8,6 +8,7 @@ use App\Http\Requests\ActualizarClubRequest;
 use App\Models\Club;
 use App\Models\ClubInvitation;
 use App\Models\ClubJoinRequest;
+use App\Models\Group;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
@@ -383,6 +384,74 @@ class ClubController extends Controller
     private function formatRoleLabel(string $role): string
     {
         return $role === 'entrenador' ? 'Entrenador' : 'Socorrista';
+    }
+
+    /**
+     * Store a new group in the club.
+     */
+    public function storeGroup(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'user_ids' => ['required', 'array', 'min:1'],
+            'user_ids.*' => ['integer', 'min:1'],
+        ]);
+
+        $user = $request->user();
+        if (!$user->club_id) {
+            return response()->json(['error' => 'No perteneces a ningún club.'], 403);
+        }
+
+        $club = Club::findOrFail($user->club_id);
+
+        // Verify all users belong to the club
+        $validUserCount = User::where('club_id', $club->id)
+            ->whereIn('id', $validated['user_ids'])
+            ->count();
+
+        if ($validUserCount !== count($validated['user_ids'])) {
+            return response()->json(['error' => 'Algunos usuarios seleccionados no pertenecen a tu club.'], 422);
+        }
+
+        $group = $club->groups()->create([
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+        ]);
+
+        $group->users()->attach($validated['user_ids']);
+
+        return response()->json([
+            'id' => $group->id,
+            'name' => $group->name,
+            'user_ids' => $group->users->pluck('id')->toArray(),
+            'member_count' => $group->users->count(),
+        ], 201);
+    }
+
+    /**
+     * Get all groups for the trainer's club.
+     */
+    public function listGroups(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user->club_id) {
+            return response()->json([]);
+        }
+
+        $groups = Group::where('club_id', $user->club_id)
+            ->with('users')
+            ->get()
+            ->map(function ($group) {
+                return [
+                    'id' => $group->id,
+                    'name' => $group->name,
+                    'user_ids' => $group->users->pluck('id')->toArray(),
+                    'member_count' => $group->users->count(),
+                ];
+            });
+
+        return response()->json($groups);
     }
 
     /**

@@ -80,6 +80,7 @@ class ExerciseLibraryController extends Controller
 
         $user        = $request->user();
         $clubMembers = collect();
+        $groups      = collect();
         if ($user->club_id) {
             $clubMembers = User::where('club_id', $user->club_id)
                 ->where('id', '!=', $user->id)
@@ -90,6 +91,19 @@ class ExerciseLibraryController extends Controller
                     'name'       => $member->name,
                     'role_label' => $member->rol === 'entrenador' ? 'Entrenador' : 'Socorrista',
                 ])
+                ->values();
+
+            $groups = \App\Models\Group::where('club_id', $user->club_id)
+                ->with('users')
+                ->get()
+                ->map(function ($group) {
+                    return [
+                        'id'         => $group->id,
+                        'name'       => $group->name,
+                        'user_ids'   => $group->users->pluck('id')->toArray(),
+                        'member_count' => $group->users->count(),
+                    ];
+                })
                 ->values();
         }
 
@@ -148,6 +162,7 @@ class ExerciseLibraryController extends Controller
             'plantillas'      => $templates,
             'hasClub'         => (bool) $request->user()->club_id,
             'clubMembers'     => $clubMembers,
+            'groups'          => $groups,
             'editWorkoutId'   => $editWorkoutId,
         ]);
     }

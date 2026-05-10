@@ -28,6 +28,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    groups: {
+        type: Array,
+        default: () => [],
+    },
     editWorkoutId: {
         type: Number,
         default: null,
@@ -98,6 +102,24 @@ const draggedTrainingIndex = ref(null);
 const showCreateTrainingForm = ref(false);
 const editingTrainingId = ref(null);
 const trainingBuilderSectionRef = ref(null);
+
+// Group management
+const showCreateGroupModal = ref(false);
+const newGroupName = ref('');
+const isCreatingGroup = ref(false);
+const availableGroups = ref(props.groups);
+const groupNoticeType = ref(null);
+const groupNoticeMessage = ref('');
+
+function setGroupNotice(type, message) {
+    groupNoticeType.value = type;
+    groupNoticeMessage.value = message;
+}
+
+function clearGroupNotice() {
+    groupNoticeType.value = null;
+    groupNoticeMessage.value = '';
+}
 
 function scrollToTrainingBuilder() {
     if (typeof window === 'undefined') {
@@ -345,6 +367,84 @@ watch(() => entrenamientoForm.target_scope, (scope) => {
     }
 });
 
+function openCreateGroupModal() {
+    newGroupName.value = '';
+    clearGroupNotice();
+    showCreateGroupModal.value = true;
+}
+
+function closeCreateGroupModal() {
+    showCreateGroupModal.value = false;
+    newGroupName.value = '';
+}
+
+async function submitCreateGroup() {
+    if (!newGroupName.value.trim()) {
+        setGroupNotice('error', 'Por favor ingresa un nombre para el grupo.');
+        return;
+    }
+
+    if (entrenamientoForm.assigned_user_ids.length === 0) {
+        setGroupNotice('error', 'Por favor selecciona al menos un atleta.');
+        return;
+    }
+
+    isCreatingGroup.value = true;
+    clearGroupNotice();
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!csrfToken) {
+            setGroupNotice('error', 'No se encontró el token CSRF. Recarga la página e inténtalo de nuevo.');
+            return;
+        }
+
+        const response = await fetch(route('clubs.groups.store'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                name: newGroupName.value.trim(),
+                user_ids: entrenamientoForm.assigned_user_ids,
+            }),
+        });
+
+        const contentType = response.headers.get('content-type') || '';
+        const data = contentType.includes('application/json') ? await response.json() : null;
+
+        if (response.ok && data) {
+            availableGroups.value.push(data);
+            setGroupNotice('success', `Grupo "${data.name}" creado exitosamente.`);
+            closeCreateGroupModal();
+            return;
+        }
+
+        if (response.status === 419) {
+            setGroupNotice('error', 'Tu sesión expiró. Recarga la página e inténtalo de nuevo.');
+            return;
+        }
+
+        const errorMsg = data?.error || data?.message || 'Error al crear el grupo.';
+        setGroupNotice('error', errorMsg);
+    } catch (error) {
+        console.error('Error creating group:', error);
+        setGroupNotice('error', 'Error de red al crear el grupo.');
+    } finally {
+        isCreatingGroup.value = false;
+    }
+}
+
+function selectGroup(groupId) {
+    const group = availableGroups.value.find((g) => g.id === groupId);
+    if (group) {
+        entrenamientoForm.assigned_user_ids = group.user_ids;
+    }
+}
+
 function selectAllClubMembers() {
     entrenamientoForm.assigned_user_ids = props.clubMembers.map((m) => m.id);
 }
@@ -508,6 +608,16 @@ function formatCategory(category) {
                 {{ flash.error }}
             </div>
 
+            <div
+                v-if="groupNoticeMessage"
+                class="rounded-lg border px-4 py-3 text-sm font-medium shadow-sm"
+                :class="groupNoticeType === 'success'
+                    ? 'border-green-200 bg-green-50 text-green-800'
+                    : 'border-red-200 bg-red-50 text-red-800'"
+            >
+                {{ groupNoticeMessage }}
+            </div>
+
             <div ref="trainingBuilderSectionRef" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                 <div class="border-b border-gray-200 p-6">
                     <div class="flex items-start justify-between gap-4">
@@ -590,54 +700,79 @@ function formatCategory(category) {
 
                     <!-- Selector de miembros del grupo -->
                     <div v-if="entrenamientoForm.target_scope === 'grupo' && hasClub" class="max-w-sm rounded-xl border border-purple-200 bg-purple-50 p-4">
-                        <div class="mb-2 flex items-center justify-between gap-2">
+                        <div class="mb-3 flex flex-col gap-3">
                             <label class="text-sm font-semibold text-purple-900">
-                                Seleccionar atletas del grupo *
+                                Usar grupo pre-guardado
                             </label>
-                            <button
-                                type="button"
-                                class="text-xs font-medium text-purple-700 hover:underline"
-                                @click="selectAllClubMembers"
-                            >
-                                Seleccionar todos
-                            </button>
-                        </div>
-                        <div v-if="clubMembers.length === 0" class="rounded-lg border border-dashed border-purple-300 bg-white p-3 text-sm italic text-purple-600">
-                            No hay otros miembros en tu club.
-                        </div>
-                        <div v-else class="max-h-44 overflow-y-auto space-y-1 rounded-lg border border-purple-200 bg-white p-2">
-                            <label
-                                v-for="member in clubMembers"
-                                :key="member.id"
-                                class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 transition hover:bg-purple-50"
-                            >
-                                <input
-                                    type="checkbox"
-                                    :value="member.id"
-                                    v-model="entrenamientoForm.assigned_user_ids"
-                                    class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                            <div v-if="availableGroups.length === 0" class="text-xs italic text-purple-600">
+                                No hay grupos guardados aún.
+                            </div>
+                            <div v-else class="flex flex-wrap gap-2">
+                                <button
+                                    v-for="group in availableGroups"
+                                    :key="group.id"
+                                    type="button"
+                                    class="rounded-full px-3 py-1 text-xs font-semibold transition"
+                                    :class="JSON.stringify(entrenamientoForm.assigned_user_ids) === JSON.stringify(group.user_ids)
+                                        ? 'bg-purple-600 text-white'
+                                        : 'border border-purple-300 bg-white text-purple-700 hover:bg-purple-100'"
+                                    @click="selectGroup(group.id)"
                                 >
-                                <span class="flex-1 text-sm text-gray-800">{{ member.name }}</span>
+                                    {{ group.name }} ({{ group.member_count }})
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-purple-200 pt-3">
+                            <div class="mb-2 flex items-center justify-between gap-2">
+                                <label class="text-sm font-semibold text-purple-900">
+                                    Seleccionar atletas manualmente *
+                                </label>
+                                <button
+                                    type="button"
+                                    class="text-xs font-medium text-purple-700 hover:underline"
+                                    @click="openCreateGroupModal"
+                                >
+                                    Guardar como grupo
+                                </button>
+                            </div>
+                            <div v-if="clubMembers.length === 0" class="rounded-lg border border-dashed border-purple-300 bg-white p-3 text-sm italic text-purple-600">
+                                No hay otros miembros en tu club.
+                            </div>
+                            <div v-else class="max-h-44 overflow-y-auto space-y-1 rounded-lg border border-purple-200 bg-white p-2">
+                                <label
+                                    v-for="member in clubMembers"
+                                    :key="member.id"
+                                    class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 transition hover:bg-purple-50"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        :value="member.id"
+                                        v-model="entrenamientoForm.assigned_user_ids"
+                                        class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                    >
+                                    <span class="flex-1 text-sm text-gray-800">{{ member.name }}</span>
+                                    <span
+                                        class="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                                        :class="member.role_label === 'Entrenador' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'"
+                                    >
+                                        {{ member.role_label }}
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="mt-2 flex items-center gap-1 text-xs">
                                 <span
-                                    class="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                                    :class="member.role_label === 'Entrenador' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'"
+                                    class="font-medium"
+                                    :class="entrenamientoForm.assigned_user_ids.length === 0 ? 'text-red-600' : 'text-green-700'"
                                 >
-                                    {{ member.role_label }}
+                                    {{ entrenamientoForm.assigned_user_ids.length }}
+                                    {{ entrenamientoForm.assigned_user_ids.length === 1 ? 'atleta seleccionado' : 'atletas seleccionados' }}
                                 </span>
-                            </label>
+                            </div>
+                            <p v-if="entrenamientoForm.errors.assigned_user_ids" class="mt-1 text-xs text-red-600">
+                                {{ entrenamientoForm.errors.assigned_user_ids }}
+                            </p>
                         </div>
-                        <div class="mt-2 flex items-center gap-1 text-xs">
-                            <span
-                                class="font-medium"
-                                :class="entrenamientoForm.assigned_user_ids.length === 0 ? 'text-red-600' : 'text-green-700'"
-                            >
-                                {{ entrenamientoForm.assigned_user_ids.length }}
-                                {{ entrenamientoForm.assigned_user_ids.length === 1 ? 'atleta seleccionado' : 'atletas seleccionados' }}
-                            </span>
-                        </div>
-                        <p v-if="entrenamientoForm.errors.assigned_user_ids" class="mt-1 text-xs text-red-600">
-                            {{ entrenamientoForm.errors.assigned_user_ids }}
-                        </p>
                     </div>
 
                     <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -1319,6 +1454,65 @@ function formatCategory(category) {
                                 @click="confirmRemoveExercise"
                             >
                                 Si, quitar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
+
+        <!-- Modal para crear grupo -->
+        <Teleport to="body">
+            <Transition
+                enter-active-class="transition ease-out duration-200"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="transition ease-in duration-150"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+            >
+                <div v-if="showCreateGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeCreateGroupModal" />
+                    <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                        <h3 class="text-lg font-semibold text-gray-900">Guardar selección como grupo</h3>
+                        <p class="mt-2 text-sm text-gray-600">
+                            Dale un nombre a este grupo para poder reutilizarlo en futuros entrenamientos.
+                        </p>
+                        <div
+                            v-if="groupNoticeMessage"
+                            class="mt-3 rounded-lg border px-4 py-3 text-sm font-medium shadow-sm"
+                            :class="groupNoticeType === 'success'
+                                ? 'border-green-200 bg-green-50 text-green-800'
+                                : 'border-red-200 bg-red-50 text-red-800'"
+                        >
+                            {{ groupNoticeMessage }}
+                        </div>
+                        <div class="mt-4">
+                            <label class="mb-2 block text-sm font-medium text-gray-700">Nombre del grupo *</label>
+                            <input
+                                v-model="newGroupName"
+                                type="text"
+                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                                placeholder="Ej: Equipo A, Grupo rescate, etc."
+                                @keyup.enter="submitCreateGroup"
+                            >
+                        </div>
+                        <div class="mt-4 flex gap-3">
+                            <button
+                                type="button"
+                                class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                                @click="closeCreateGroupModal"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                :disabled="!newGroupName.trim() || isCreatingGroup"
+                                class="flex-1 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-purple-700 disabled:opacity-50"
+                                @click="submitCreateGroup"
+                            >
+                                <span v-if="isCreatingGroup">Creando...</span>
+                                <span v-else>Guardar grupo</span>
                             </button>
                         </div>
                     </div>
