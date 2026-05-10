@@ -17,6 +17,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/calendario', [DashboardController::class, 'calendarioAtleta'])->name('calendario.atleta');
+    Route::get('/entrenamientos', [DashboardController::class, 'entrenamientosIndex'])->name('entrenamientos.index');
 
     // Ruta de abandono voluntario disponible para cualquier usuario autenticado
     Route::delete('/clubs/leave', [ClubController::class, 'leave'])->name('clubs.leave');

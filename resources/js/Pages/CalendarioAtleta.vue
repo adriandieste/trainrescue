@@ -253,7 +253,7 @@ onUnmounted(() => {
 
                                     <div class="flex items-center gap-2">
                                         <a
-                                            :href="`/dashboard#workout-${workout.id}`"
+                                            :href="route('entrenamientos.index')"
                                             class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
                                         >
                                             Ver detalles

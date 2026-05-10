@@ -400,4 +400,57 @@ class DashboardController extends Controller
 
         return Inertia::render('CalendarioAtleta', ['entrenamientos' => $entrenamientos]);
     }
+
+    public function entrenamientosIndex(Request $request): Response
+    {
+        $user = $request->user()->load('club');
+
+        if (! in_array($user->rol, ['socorrista', 'atleta'], true)) {
+            abort(403, 'Solo atletas o socorristas pueden acceder a los entrenamientos.');
+        }
+
+        if (! $user->club_id) {
+            return Inertia::render('Ejercicios/EntrenosSocorrista', ['entrenamientos' => []]);
+        }
+
+        $entrenamientos = [];
+        if (Schema::hasTable('workouts') && Schema::hasTable('workout_exercises')) {
+            $supportsTemplates   = Schema::hasColumn('workouts', 'is_template');
+            $supportsAssignments = Schema::hasTable('workout_assignments');
+            $supportsCompletions = Schema::hasTable('workout_completions');
+
+            $completedWorkoutIds = $supportsCompletions
+                ? DB::table('workout_completions')
+                    ->where('user_id', $user->id)
+                    ->pluck('workout_id')
+                    ->map(fn ($id) => (int) $id)
+                    ->all()
+                : [];
+
+            $visibleWorkoutsQuery = Workout::with(['exercises.predefinedExercise', 'exercises.customExercise'])
+                ->where(function ($query) use ($user, $supportsAssignments) {
+                    // Workouts de todo el club
+                    $query->where(function ($q) use ($user) {
+                        $q->where('club_id', $user->club_id)
+                          ->where('target_scope', 'club');
+                    });
+                    // Workouts de grupo donde este atleta está asignado específicamente
+                    if ($supportsAssignments) {
+                        $query->orWhere(function ($q) use ($user) {
+                            $q->where('target_scope', 'grupo')
+                              ->whereHas('assignedUsers', fn ($rel) => $rel->where('users.id', $user->id));
+                        });
+                    }
+                })
+                ->when($supportsTemplates, fn ($query) => $query->where('is_template', false));
+
+            $entrenamientos = (clone $visibleWorkoutsQuery)
+                ->orderBy('workout_date', 'asc')
+                ->get()
+                ->map(fn (Workout $workout) => $this->mapWorkoutForAtletaDashboard($workout, $completedWorkoutIds))
+                ->all();
+        }
+
+        return Inertia::render('Ejercicios/EntrenosSocorrista', ['entrenamientos' => $entrenamientos]);
+    }
 }
