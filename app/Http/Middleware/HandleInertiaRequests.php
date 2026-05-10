@@ -3,7 +3,9 @@
 namespace App\Http\Middleware;
 
 use App\Models\ClubInvitation;
+use App\Notifications\WorkoutAsignadoNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -44,7 +46,7 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * @return array{clubInvitations: array<int, array<string, mixed>>, clubInvitationsCount: int}
+     * @return array{clubInvitations: array, workoutNotifications: array, totalCount: int}
      */
     private function resolveNotifications(Request $request): array
     {
@@ -52,8 +54,10 @@ class HandleInertiaRequests extends Middleware
 
         if (! $user || ! in_array($user->rol, ['socorrista', 'atleta'], true)) {
             return [
-                'clubInvitations' => [],
+                'clubInvitations'      => [],
                 'clubInvitationsCount' => 0,
+                'workoutNotifications' => [],
+                'totalCount'           => 0,
             ];
         }
 
@@ -65,13 +69,13 @@ class HandleInertiaRequests extends Middleware
             ->map(fn (ClubInvitation $invitation) => [
                 'id' => $invitation->id,
                 'club' => [
-                    'id' => $invitation->club->id,
-                    'name' => $invitation->club->name,
+                    'id'      => $invitation->club->id,
+                    'name'    => $invitation->club->name,
                     'logo_url' => $invitation->club->logo_path ? asset('storage/' . $invitation->club->logo_path) : null,
                 ],
                 'trainer' => [
-                    'id' => $invitation->inviter->id,
-                    'name' => $invitation->inviter->name,
+                    'id'    => $invitation->inviter->id,
+                    'name'  => $invitation->inviter->name,
                     'email' => $invitation->inviter->email,
                 ],
                 'created_at' => $invitation->created_at->diffForHumans(),
@@ -79,9 +83,31 @@ class HandleInertiaRequests extends Middleware
             ->values()
             ->all();
 
+        $workoutNotifications = [];
+        if (Schema::hasTable('notifications')) {
+            $workoutNotifications = $user->unreadNotifications()
+                ->where('type', WorkoutAsignadoNotification::class)
+                ->latest()
+                ->take(10)
+                ->get()
+                ->map(fn ($n) => [
+                    'id'                     => $n->id,
+                    'workout_id'             => $n->data['workout_id'],
+                    'workout_title'          => $n->data['workout_title'],
+                    'workout_date_formatted' => $n->data['workout_date_formatted'] ?? null,
+                    'created_at'             => $n->created_at->diffForHumans(),
+                ])
+                ->values()
+                ->all();
+        }
+
+        $totalCount = count($clubInvitations) + count($workoutNotifications);
+
         return [
-            'clubInvitations' => $clubInvitations,
+            'clubInvitations'      => $clubInvitations,
             'clubInvitationsCount' => count($clubInvitations),
+            'workoutNotifications' => $workoutNotifications,
+            'totalCount'           => $totalCount,
         ];
     }
 }
