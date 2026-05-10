@@ -164,9 +164,12 @@ class DashboardController extends Controller
 
             $entrenamientos = [];
             if ($user->club_id && Schema::hasTable('workouts') && Schema::hasTable('workout_exercises')) {
+                $supportsTemplates = Schema::hasColumn('workouts', 'is_template');
+
                 $entrenamientos = Workout::with(['exercises.predefinedExercise', 'exercises.customExercise'])
                     ->where('club_id', $user->club_id)
                     ->where('target_scope', 'club')
+                    ->when($supportsTemplates, fn ($query) => $query->where('is_template', false))
                     ->orderBy('workout_date', 'asc')
                     ->get()
                     ->map(function (Workout $workout) {

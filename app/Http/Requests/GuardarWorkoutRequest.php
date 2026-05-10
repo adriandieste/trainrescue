@@ -1,7 +1,11 @@
 <?php
+
 namespace App\Http\Requests;
+
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+
 class GuardarWorkoutRequest extends FormRequest
 {
     /**
@@ -11,6 +15,7 @@ class GuardarWorkoutRequest extends FormRequest
     {
         return $this->user()?->rol === 'entrenador';
     }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -18,20 +23,24 @@ class GuardarWorkoutRequest extends FormRequest
      */
     public function rules(): array
     {
-        $isTemplate = $this->boolean('is_template');
         return [
-            'is_template'    => ['sometimes', 'boolean'],
-            'title'          => ['required', 'string', 'max:255'],
-            'workout_date'   => $isTemplate ? ['nullable', 'date'] : ['required', 'date'],
-            'target_scope'   => ['required', 'in:personal,club'],
-            'exercises'      => ['required', 'array', 'min:1'],
-            'exercises.*.source'        => ['required', 'in:predefined,custom'],
-            'exercises.*.exercise_id'   => ['required', 'integer', 'min:1'],
-            'exercises.*.sets'          => ['required', 'integer', 'min:1', 'max:100'],
-            'exercises.*.meters'        => ['nullable', 'integer', 'min:1', 'max:50000'],
-            'exercises.*.rest_seconds'  => ['nullable', 'integer', 'min:0', 'max:3600'],
+            'title' => ['required', 'string', 'max:255'],
+            'is_template' => ['required', 'boolean'],
+            'workout_date' => [
+                'nullable',
+                'date',
+                Rule::requiredIf(fn (): bool => ! $this->boolean('is_template')),
+            ],
+            'target_scope' => ['required', 'in:personal,club'],
+            'exercises' => ['required', 'array', 'min:1'],
+            'exercises.*.source' => ['required', 'in:predefined,custom'],
+            'exercises.*.exercise_id' => ['required', 'integer', 'min:1'],
+            'exercises.*.sets' => ['required', 'integer', 'min:1', 'max:100'],
+            'exercises.*.meters' => ['nullable', 'integer', 'min:1', 'max:50000'],
+            'exercises.*.rest_seconds' => ['nullable', 'integer', 'min:0', 'max:3600'],
         ];
     }
+
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
@@ -40,13 +49,23 @@ class GuardarWorkoutRequest extends FormRequest
             }
         });
     }
+
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('is_template')) {
+            $this->merge(['is_template' => false]);
+        }
+    }
+
     public function messages(): array
     {
         return [
-            'title.required'       => 'El titulo del entrenamiento es obligatorio.',
+            'title.required' => 'El titulo del entrenamiento es obligatorio.',
             'workout_date.required' => 'La fecha del entrenamiento es obligatoria.',
-            'exercises.required'   => 'Debes agregar al menos un ejercicio al entrenamiento.',
-            'exercises.min'        => 'Debes agregar al menos un ejercicio al entrenamiento.',
+            'exercises.required' => 'Debes agregar al menos un ejercicio al entrenamiento.',
+            'exercises.min' => 'Debes agregar al menos un ejercicio al entrenamiento.',
         ];
     }
 }
+
+

@@ -85,8 +85,6 @@ const entrenamientoForm = useForm({
     exercises: [],
 });
 
-const showTemplateModal = ref(false);
-
 const draggedTrainingIndex = ref(null);
 const showCreateTrainingForm = ref(false);
 const editingTrainingId = ref(null);
@@ -112,7 +110,7 @@ function sourceLabel(source) {
 }
 
 function resetTrainingForm() {
-    entrenamientoForm.reset('title', 'workout_date', 'exercises', 'is_template');
+    entrenamientoForm.reset('title', 'workout_date', 'target_scope', 'is_template', 'exercises');
     entrenamientoForm.clearErrors();
     entrenamientoForm.target_scope = hasClub.value ? 'club' : 'personal';
     entrenamientoForm.is_template = false;
@@ -141,7 +139,7 @@ function openTrainingEditor(entrenamiento) {
     entrenamientoForm.title = entrenamiento.title ?? '';
     entrenamientoForm.workout_date = entrenamiento.workout_date ?? '';
     entrenamientoForm.target_scope = entrenamiento.target_scope ?? (hasClub.value ? 'club' : 'personal');
-    entrenamientoForm.is_template = entrenamiento.is_template ?? false;
+    entrenamientoForm.is_template = Boolean(entrenamiento.is_template);
     entrenamientoForm.exercises = (entrenamiento.exercises ?? []).map((item) => ({
         source: item.source,
         exercise_id: item.exercise_id,
@@ -163,6 +161,24 @@ function addExerciseToTraining(exercise) {
         meters: exercise.default_meters ?? null,
         rest_seconds: exercise.default_rest_seconds ?? 45,
     });
+}
+
+function useTemplate(template) {
+    showCreateTrainingForm.value = true;
+    editingTrainingId.value = null;
+    entrenamientoForm.clearErrors();
+    entrenamientoForm.title = template.title ?? '';
+    entrenamientoForm.workout_date = '';
+    entrenamientoForm.target_scope = template.target_scope ?? (hasClub.value ? 'club' : 'personal');
+    entrenamientoForm.is_template = false;
+    entrenamientoForm.exercises = (template.exercises ?? []).map((item) => ({
+        source: item.source,
+        exercise_id: item.exercise_id,
+        name: item.name,
+        sets: item.sets ?? 3,
+        meters: item.meters ?? null,
+        rest_seconds: item.rest_seconds ?? 45,
+    }));
 }
 
 const pendingRemoveIndex = ref(null);
@@ -213,24 +229,6 @@ function dropTrainingExercise(targetIndex) {
     draggedTrainingIndex.value = null;
 }
 
-function useTemplateAsNew(plantilla) {
-    showTemplateModal.value = false;
-    showCreateTrainingForm.value = true;
-    editingTrainingId.value = null;
-    entrenamientoForm.clearErrors();
-    entrenamientoForm.title = plantilla.title ?? '';
-    entrenamientoForm.workout_date = '';
-    entrenamientoForm.target_scope = plantilla.target_scope ?? (hasClub.value ? 'club' : 'personal');
-    entrenamientoForm.is_template = false;
-    entrenamientoForm.exercises = (plantilla.exercises ?? []).map((item) => ({
-        source: item.source,
-        exercise_id: item.exercise_id,
-        name: item.name,
-        sets: item.sets ?? 3,
-        meters: item.meters ?? null,
-        rest_seconds: item.rest_seconds ?? 45,
-    }));
-}
 function submitTraining() {
     entrenamientoForm.clearErrors();
 
@@ -240,6 +238,8 @@ function submitTraining() {
 
     const request = entrenamientoForm.transform((data) => ({
         ...data,
+        is_template: Boolean(data.is_template),
+        workout_date: data.is_template ? null : data.workout_date,
         exercises: data.exercises.map((item) => ({
             source: item.source,
             exercise_id: item.exercise_id,
@@ -265,6 +265,12 @@ function submitTraining() {
 
     request.post(route('workouts.store'), options);
 }
+
+watch(() => entrenamientoForm.is_template, (isTemplate) => {
+    if (isTemplate) {
+        entrenamientoForm.workout_date = '';
+    }
+});
 
 const form = useForm({
     name: '',
@@ -430,9 +436,9 @@ function formatCategory(category) {
                     <div class="flex items-start justify-between gap-4">
                         <div>
                             <h2 class="text-lg font-semibold text-gray-900">
-                                {{ editingTrainingId ? 'Editar entrenamiento' : 'Crear entrenamiento' }}
+                                {{ editingTrainingId ? 'Editar entrenamiento' : 'Crear entrenamiento o plantilla' }}
                             </h2>
-                            <p class="mt-1 text-sm text-gray-600">Crea entrenamientos con fecha y combina ejercicios RFESS y personalizados en una lista ordenable.</p>
+                            <p class="mt-1 text-sm text-gray-600">Configura sesiones con ejercicios RFESS/personalizados y guárdalas como entrenamiento o plantilla reutilizable.</p>
                         </div>
                         <button
                             type="button"
@@ -462,35 +468,34 @@ function formatCategory(category) {
                         </div>
 
                         <div>
-                            <label class="mb-1 block text-sm font-medium text-gray-700">
-                                Fecha <span v-if="!entrenamientoForm.is_template">*</span>
-                                <span v-else class="text-xs font-normal text-gray-400">(opcional en plantillas)</span>
-                            </label>
+                            <label class="mb-1 block text-sm font-medium text-gray-700">Fecha {{ entrenamientoForm.is_template ? '(opcional)' : '*' }}</label>
                             <input
                                 v-model="entrenamientoForm.workout_date"
                                 type="date"
-                                :disabled="entrenamientoForm.is_template && !entrenamientoForm.workout_date"
-                                class="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                                :class="entrenamientoForm.errors.workout_date ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'"
+                                :disabled="entrenamientoForm.is_template"
+                                class="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2"
+                                :class="[
+                                    entrenamientoForm.errors.workout_date ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500',
+                                    entrenamientoForm.is_template ? 'cursor-not-allowed bg-gray-100 text-gray-500' : '',
+                                ]"
                             >
                             <p v-if="entrenamientoForm.errors.workout_date" class="mt-1 text-xs text-red-600">{{ entrenamientoForm.errors.workout_date }}</p>
+                            <p v-if="entrenamientoForm.is_template" class="mt-1 text-xs text-gray-500">Las plantillas no se asignan a una fecha concreta.</p>
                         </div>
                     </div>
-                    <!-- Toggle plantilla -->
-                    <div class="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-                        <label class="relative inline-flex cursor-pointer items-center">
+
+                    <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
+                        <label class="inline-flex items-start gap-2 text-sm text-indigo-900">
                             <input
                                 v-model="entrenamientoForm.is_template"
                                 type="checkbox"
-                                class="sr-only peer"
-                                @change="entrenamientoForm.is_template && (entrenamientoForm.workout_date = '')"
+                                class="mt-0.5 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
                             >
-                            <div class="peer h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-amber-500 peer-focus:ring-2 peer-focus:ring-amber-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white" />
+                            <span>
+                                <span class="font-semibold">Guardar como plantilla</span>
+                                <span class="mt-0.5 block text-xs text-indigo-700">Se guarda en "Mis Plantillas" para reutilizarla en futuras sesiones.</span>
+                            </span>
                         </label>
-                        <div>
-                            <p class="text-sm font-semibold text-amber-800">Guardar como plantilla reutilizable</p>
-                            <p class="text-xs text-amber-600">Las plantillas no tienen fecha asignada y aparecen en "Mis Plantillas" para reutilizarlas.</p>
-                        </div>
                     </div>
 
                     <div class="max-w-sm">
@@ -613,7 +618,9 @@ function formatCategory(category) {
                         </div>
 
                         <p v-if="entrenamientoForm.errors.exercises" class="mt-2 text-xs text-red-600">{{ entrenamientoForm.errors.exercises }}</p>
-                        <p v-if="isTrainingInvalid && !entrenamientoForm.processing" class="mt-2 text-xs text-amber-700">Completa titulo{{ entrenamientoForm.is_template ? '' : ', fecha' }} y al menos un ejercicio con series.</p>
+                        <p v-if="isTrainingInvalid && !entrenamientoForm.processing" class="mt-2 text-xs text-amber-700">
+                            Completa titulo, {{ entrenamientoForm.is_template ? 'al menos un ejercicio con series' : 'fecha y al menos un ejercicio con series' }}.
+                        </p>
                     </div>
 
                     <div class="flex justify-end">
@@ -622,11 +629,9 @@ function formatCategory(category) {
                             :disabled="entrenamientoForm.processing || isTrainingInvalid"
                             class="inline-flex items-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-900 disabled:opacity-50"
                         >
-                            <span v-if="entrenamientoForm.processing">{{ entrenamientoForm.is_template ? 'Guardando plantilla...' : 'Guardando entrenamiento...' }}</span>
+                            <span v-if="entrenamientoForm.processing">Guardando...</span>
                             <span v-else>
-                                <span v-if="editingTrainingId">Guardar cambios</span>
-                                <span v-else-if="entrenamientoForm.is_template">Guardar como plantilla</span>
-                                <span v-else>Guardar entrenamiento</span>
+                                {{ editingTrainingId ? 'Guardar cambios' : (entrenamientoForm.is_template ? 'Guardar plantilla' : 'Guardar entrenamiento') }}
                             </span>
                         </button>
                     </div>
@@ -879,34 +884,25 @@ function formatCategory(category) {
                             </div>
                         </div>
                     </div>
-                    <!-- Mis Plantillas section in sidebar -->
+
                     <div v-if="plantillas.length > 0" class="border-t border-gray-200 p-4">
-                        <div class="mb-2 flex items-center justify-between gap-2">
-                            <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Mis Plantillas</h3>
-                            <button
-                                type="button"
-                                class="text-[10px] font-semibold text-amber-700 hover:text-amber-900"
-                                @click="showTemplateModal = true"
-                            >
-                                Ver todas ({{ plantillas.length }})
-                            </button>
-                        </div>
-                        <div class="space-y-2">
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Mis Plantillas</h3>
+                        <div class="mt-2 space-y-2">
                             <div
-                                v-for="plantilla in plantillas.slice(0, 3)"
-                                :key="plantilla.id"
-                                class="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs"
+                                v-for="plantilla in plantillas"
+                                :key="`tpl-${plantilla.id}`"
+                                class="rounded-lg border border-indigo-100 bg-indigo-50/70 px-3 py-2 text-xs"
                             >
                                 <div class="flex items-start justify-between gap-2">
-                                    <div class="min-w-0">
-                                        <p class="truncate font-semibold text-amber-900">{{ plantilla.title }}</p>
-                                        <p class="text-amber-600">{{ plantilla.exercises.length }} ejercicio{{ plantilla.exercises.length !== 1 ? 's' : '' }}</p>
+                                    <div>
+                                        <p class="font-semibold text-indigo-900">{{ plantilla.title }}</p>
+                                        <p class="text-indigo-700">{{ plantilla.exercises.length }} {{ plantilla.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }} · {{ plantilla.target_scope === 'club' ? 'Club' : 'Personal' }}</p>
                                     </div>
-                                    <div class="flex shrink-0 gap-1">
+                                    <div class="flex items-center gap-1">
                                         <button
                                             type="button"
-                                            class="rounded-md bg-amber-500 px-2 py-1 text-[10px] font-semibold text-white hover:bg-amber-600"
-                                            @click="useTemplateAsNew(plantilla)"
+                                            class="rounded-md border border-indigo-300 bg-white px-2 py-1 text-[10px] font-semibold text-indigo-700 hover:bg-indigo-100"
+                                            @click="useTemplate(plantilla)"
                                         >
                                             Usar
                                         </button>
@@ -924,6 +920,7 @@ function formatCategory(category) {
                         </div>
                     </div>
                 </div>
+
                 <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg lg:col-span-2">
                     <div v-if="selectedExercise" class="p-6">
                         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -1183,88 +1180,7 @@ function formatCategory(category) {
                 </div>
             </Transition>
         </Teleport>
-    
-        <!-- Modal: Seleccion de plantilla -->
-        <Teleport to="body">
-            <Transition
-                enter-active-class="transition ease-out duration-200"
-                enter-from-class="opacity-0"
-                enter-to-class="opacity-100"
-                leave-active-class="transition ease-in duration-150"
-                leave-from-class="opacity-100"
-                leave-to-class="opacity-0"
-            >
-                <div v-if="showTemplateModal" class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-16 overflow-y-auto">
-                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showTemplateModal = false" />
-                    <div class="relative w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
-                        <div class="mb-4 flex items-center justify-between gap-4">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900">Mis Plantillas</h3>
-                                <p class="text-sm text-gray-500">Selecciona una plantilla para iniciar un nuevo entrenamiento con sus ejercicios precargados.</p>
-                            </div>
-                            <button
-                                type="button"
-                                class="rounded-lg border border-gray-200 p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                                @click="showTemplateModal = false"
-                            >
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div v-if="plantillas.length === 0" class="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
-                            Aun no tienes plantillas guardadas. Al crear un entrenamiento, activa el toggle "Guardar como plantilla" para reutilizarlo.
-                        </div>
-                        <div v-else class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                            <div
-                                v-for="plantilla in plantillas"
-                                :key="plantilla.id"
-                                class="rounded-xl border border-gray-200 bg-gray-50 p-4 hover:border-amber-300 hover:bg-amber-50 transition"
-                            >
-                                <div class="flex items-start justify-between gap-3">
-                                    <div class="min-w-0">
-                                        <p class="font-semibold text-gray-900">{{ plantilla.title }}</p>
-                                        <p class="mt-0.5 text-xs text-gray-500">
-                                            {{ plantilla.exercises.length }} ejercicio{{ plantilla.exercises.length !== 1 ? 's' : '' }}
-                                            &bull;
-                                            {{ plantilla.target_scope === 'club' ? 'Club' : 'Personal' }}
-                                        </p>
-                                        <div v-if="plantilla.exercises.length > 0" class="mt-2 flex flex-wrap gap-1">
-                                            <span
-                                                v-for="ex in plantilla.exercises.slice(0, 4)"
-                                                :key="ex.exercise_id"
-                                                class="inline-flex items-center rounded-full bg-white border border-gray-200 px-2 py-0.5 text-[10px] text-gray-600"
-                                            >
-                                                {{ ex.name }}
-                                            </span>
-                                            <span v-if="plantilla.exercises.length > 4" class="inline-flex items-center rounded-full bg-white border border-gray-200 px-2 py-0.5 text-[10px] text-gray-400">
-                                                +{{ plantilla.exercises.length - 4 }} mas
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="flex shrink-0 flex-col gap-2">
-                                        <button
-                                            type="button"
-                                            class="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600 transition"
-                                            @click="useTemplateAsNew(plantilla)"
-                                        >
-                                            Usar plantilla
-                                        </button>
-                                        <button
-                                            v-if="plantilla.can_edit"
-                                            type="button"
-                                            class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
-                                            @click="showTemplateModal = false; openTrainingEditor(plantilla);"
-                                        >
-                                            Editar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </Transition>
-        </Teleport>
     </GeneralLayout>
 </template>
+
+
