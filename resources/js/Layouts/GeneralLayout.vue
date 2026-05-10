@@ -6,6 +6,8 @@ import { computed } from 'vue';
 
 const page = usePage();
 const isEntrenador = computed(() => page.props.auth?.user?.rol === 'entrenador');
+const calendarRoute = computed(() => isEntrenador.value ? route('calendar.index') : route('calendario.atleta'));
+const calendarActive = computed(() => route().current('calendar.*') || route().current('calendario.*'));
 </script>
 
 <template>
@@ -29,18 +31,13 @@ const isEntrenador = computed(() => page.props.auth?.user?.rol === 'entrenador')
                         </Link>
 
                         <Link
-                            v-if="isEntrenador"
-                            :href="route('calendar.index')"
+                            :href="calendarRoute"
                             class="group flex flex-col items-center gap-1 text-[11px] font-bold uppercase tracking-wider transition"
-                            :class="route().current('calendar.*') ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'"
+                            :class="calendarActive ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'"
                         >
                             <svg class="h-6 w-6 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10m-12 9h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v11a2 2 0 002 2z" /></svg>
                             Calendario
                         </Link>
-                        <button v-else class="group flex flex-col items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-gray-600 transition">
-                            <svg class="h-6 w-6 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10m-12 9h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v11a2 2 0 002 2z" /></svg>
-                            Calendario
-                        </button>
 
                         <Link
                             v-if="isEntrenador"
@@ -84,18 +81,13 @@ const isEntrenador = computed(() => page.props.auth?.user?.rol === 'entrenador')
                 </Link>
 
                 <Link
-                    v-if="isEntrenador"
-                    :href="route('calendar.index')"
+                    :href="calendarRoute"
                     class="flex flex-col items-center gap-1 px-3 transition active:scale-90"
-                    :class="route().current('calendar.*') ? 'text-blue-600' : 'text-gray-400'"
+                    :class="calendarActive ? 'text-blue-600' : 'text-gray-400'"
                 >
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10m-12 9h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v11a2 2 0 002 2z" /></svg>
                     <span class="text-[10px] font-bold uppercase">Calendario</span>
                 </Link>
-                <button v-else class="flex flex-col items-center gap-1 px-3 text-gray-400 active:scale-90 transition">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10m-12 9h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v11a2 2 0 002 2z" /></svg>
-                    <span class="text-[10px] font-bold uppercase">Calendario</span>
-                </button>
 
                 <Link
                     v-if="isEntrenador"

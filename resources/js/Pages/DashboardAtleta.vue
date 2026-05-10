@@ -2,7 +2,7 @@
 import GeneralLayout from '@/Layouts/GeneralLayout.vue';
 import SocorristasClub from '@/Components/SocorristasClub.vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 const props = defineProps({
     entrenamientos: {
         type: Array,
@@ -42,10 +42,26 @@ function dismissNotification(id) {
 function dismissAllNotifications() {
     router.patch(route('notifications.mark-all-read'), {}, { preserveScroll: true });
 }
+function markWorkoutCompleted(workoutId) {
+    router.patch(route('workouts.complete', workoutId), {}, { preserveScroll: true });
+}
 function formatDate(dateStr) {
     if (!dateStr) return '';
     const [y, m, d] = dateStr.split('-');
     return `${d}/${m}/${y}`;
+}
+function formatDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+function startOfWeek(date) {
+    const base = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const day = base.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    base.setDate(base.getDate() + diffToMonday);
+    return base;
 }
 const upcomingWorkouts = computed(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -56,6 +72,34 @@ const pastWorkouts = computed(() => {
     return props.entrenamientos.filter(e => e.workout_date < today);
 });
 const todayWorkout = computed(() => props.entrenamientoHoy ?? null);
+
+function statusLabel(status) {
+    if (status === 'completed') return 'Completado';
+    if (status === 'pending') return 'Pendiente';
+    return 'Futuro';
+}
+
+let dashboardReloadInterval = null;
+onMounted(() => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    dashboardReloadInterval = window.setInterval(() => {
+        router.reload({
+            only: ['entrenamientos', 'entrenamientoHoy', 'notificaciones'],
+            preserveScroll: true,
+            preserveState: true,
+        });
+    }, 60000);
+});
+
+onUnmounted(() => {
+    if (dashboardReloadInterval) {
+        clearInterval(dashboardReloadInterval);
+        dashboardReloadInterval = null;
+    }
+});
 </script>
 <template>
     <Head title="Dashboard Socorrista" />

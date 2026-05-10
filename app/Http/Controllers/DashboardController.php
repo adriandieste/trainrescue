@@ -7,8 +7,10 @@ use App\Models\ClubJoinRequest;
 use App\Models\User;
 use App\Models\Workout;
 use App\Notifications\WorkoutAsignadoNotification;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -169,6 +171,15 @@ class DashboardController extends Controller
             if ($user->club_id && Schema::hasTable('workouts') && Schema::hasTable('workout_exercises')) {
                 $supportsTemplates   = Schema::hasColumn('workouts', 'is_template');
                 $supportsAssignments = Schema::hasTable('workout_assignments');
+                $supportsCompletions = Schema::hasTable('workout_completions');
+
+                $completedWorkoutIds = $supportsCompletions
+                    ? DB::table('workout_completions')
+                        ->where('user_id', $user->id)
+                        ->pluck('workout_id')
+                        ->map(fn ($id) => (int) $id)
+                        ->all()
+                    : [];
 
                 $visibleWorkoutsQuery = Workout::with(['exercises.predefinedExercise', 'exercises.customExercise'])
                     ->where(function ($query) use ($user, $supportsAssignments) {
@@ -190,7 +201,7 @@ class DashboardController extends Controller
                 $entrenamientos = (clone $visibleWorkoutsQuery)
                     ->orderBy('workout_date', 'asc')
                     ->get()
-                    ->map(fn (Workout $workout) => $this->mapWorkoutForAtletaDashboard($workout))
+                    ->map(fn (Workout $workout) => $this->mapWorkoutForAtletaDashboard($workout, $completedWorkoutIds))
                     ->all();
 
                 $entrenamientoHoyModel = (clone $visibleWorkoutsQuery)
@@ -199,7 +210,7 @@ class DashboardController extends Controller
                     ->first();
 
                 $entrenamientoHoy = $entrenamientoHoyModel
-                    ? $this->mapWorkoutForAtletaDashboard($entrenamientoHoyModel)
+                    ? $this->mapWorkoutForAtletaDashboard($entrenamientoHoyModel, $completedWorkoutIds)
                     : null;
             }
             return Inertia::render('DashboardAtleta', [
@@ -214,13 +225,83 @@ class DashboardController extends Controller
         abort(403, 'Acceso denegado: Rol no reconocido.');
     }
 
-    private function mapWorkoutForAtletaDashboard(Workout $workout): array
+    public function markWorkoutCompleted(Request $request, Workout $workout): RedirectResponse
     {
+        $user = $request->user();
+
+        if (! in_array($user->rol, ['socorrista', 'atleta'], true)) {
+            abort(403, 'Solo atletas o socorristas pueden marcar entrenamientos como completados.');
+        }
+
+        if (! $user->club_id) {
+            return redirect()->route('dashboard')->with('error', 'No perteneces a un club.');
+        }
+
+        if (! Schema::hasTable('workout_completions')) {
+            return redirect()->route('dashboard')->with('error', 'El seguimiento de cumplimiento no está disponible todavía.');
+        }
+
+        $supportsTemplates = Schema::hasColumn('workouts', 'is_template');
+        $supportsAssignments = Schema::hasTable('workout_assignments');
+
+        $visibleWorkout = Workout::query()
+            ->whereKey($workout->id)
+            ->whereDate('workout_date', '<=', Carbon::today())
+            ->where(function ($query) use ($user, $supportsAssignments) {
+                $query->where(function ($q) use ($user) {
+                    $q->where('club_id', $user->club_id)
+                      ->where('target_scope', 'club');
+                });
+
+                if ($supportsAssignments) {
+                    $query->orWhere(function ($q) use ($user) {
+                        $q->where('target_scope', 'grupo')
+                          ->whereHas('assignedUsers', fn ($rel) => $rel->where('users.id', $user->id));
+                    });
+                }
+            })
+            ->when($supportsTemplates, fn ($query) => $query->where('is_template', false))
+            ->first();
+
+        if (! $visibleWorkout) {
+            return redirect()->route('dashboard')->with('error', 'No puedes marcar este entrenamiento como completado.');
+        }
+
+        DB::table('workout_completions')->updateOrInsert(
+            [
+                'user_id' => $user->id,
+                'workout_id' => $visibleWorkout->id,
+            ],
+            [
+                'completed_at' => now(),
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
+        return redirect()->route('dashboard')->with('success', 'Entrenamiento marcado como completado.');
+    }
+
+    private function mapWorkoutForAtletaDashboard(Workout $workout, array $completedWorkoutIds = []): array
+    {
+        $workoutDate = $workout->workout_date?->format('Y-m-d');
+        $today = Carbon::today()->format('Y-m-d');
+        $isCompleted = in_array((int) $workout->id, $completedWorkoutIds, true);
+
+        $completionStatus = 'future';
+        if ($isCompleted && $workoutDate && $workoutDate <= $today) {
+            $completionStatus = 'completed';
+        } elseif ($workoutDate && $workoutDate < $today) {
+            $completionStatus = 'pending';
+        }
+
         return [
             'id'                     => $workout->id,
             'title'                  => $workout->title,
-            'workout_date'           => $workout->workout_date?->format('Y-m-d'),
+            'workout_date'           => $workoutDate,
             'workout_date_formatted' => $workout->workout_date?->format('d/m/Y'),
+            'is_completed'           => $isCompleted,
+            'completion_status'      => $completionStatus,
             'exercises'              => $workout->exercises->map(function ($line) {
                 $name = $line->predefinedExercise?->name
                     ?? $line->customExercise?->name
@@ -266,6 +347,57 @@ class DashboardController extends Controller
             ->values()
             ->all();
     }
+
+    public function calendarioAtleta(Request $request): Response
+    {
+        $user = $request->user()->load('club');
+
+        if (! in_array($user->rol, ['socorrista', 'atleta'], true)) {
+            abort(403, 'Solo atletas o socorristas pueden acceder al calendario.');
+        }
+
+        if (! $user->club_id) {
+            return Inertia::render('CalendarioAtleta', ['entrenamientos' => []]);
+        }
+
+        $entrenamientos = [];
+        if (Schema::hasTable('workouts') && Schema::hasTable('workout_exercises')) {
+            $supportsTemplates   = Schema::hasColumn('workouts', 'is_template');
+            $supportsAssignments = Schema::hasTable('workout_assignments');
+            $supportsCompletions = Schema::hasTable('workout_completions');
+
+            $completedWorkoutIds = $supportsCompletions
+                ? DB::table('workout_completions')
+                    ->where('user_id', $user->id)
+                    ->pluck('workout_id')
+                    ->map(fn ($id) => (int) $id)
+                    ->all()
+                : [];
+
+            $visibleWorkoutsQuery = Workout::with(['exercises.predefinedExercise', 'exercises.customExercise'])
+                ->where(function ($query) use ($user, $supportsAssignments) {
+                    // Workouts de todo el club
+                    $query->where(function ($q) use ($user) {
+                        $q->where('club_id', $user->club_id)
+                          ->where('target_scope', 'club');
+                    });
+                    // Workouts de grupo donde este atleta está asignado específicamente
+                    if ($supportsAssignments) {
+                        $query->orWhere(function ($q) use ($user) {
+                            $q->where('target_scope', 'grupo')
+                              ->whereHas('assignedUsers', fn ($rel) => $rel->where('users.id', $user->id));
+                        });
+                    }
+                })
+                ->when($supportsTemplates, fn ($query) => $query->where('is_template', false));
+
+            $entrenamientos = (clone $visibleWorkoutsQuery)
+                ->orderBy('workout_date', 'asc')
+                ->get()
+                ->map(fn (Workout $workout) => $this->mapWorkoutForAtletaDashboard($workout, $completedWorkoutIds))
+                ->all();
+        }
+
+        return Inertia::render('CalendarioAtleta', ['entrenamientos' => $entrenamientos]);
+    }
 }
-
-
