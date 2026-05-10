@@ -16,6 +16,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    notificaciones: {
+        type: Array,
+        default: () => [],
+    },
 });
 const page = usePage();
 const user = computed(() => page.props.auth.user);
@@ -27,6 +31,12 @@ function acceptInvitation(invitationId) {
 }
 function rejectInvitation(invitationId) {
     router.post(route('club-invitations.reject', invitationId), {}, { preserveScroll: true });
+}
+function dismissNotification(id) {
+    router.patch(route('notifications.mark-read', id), {}, { preserveScroll: true });
+}
+function dismissAllNotifications() {
+    router.patch(route('notifications.mark-all-read'), {}, { preserveScroll: true });
 }
 function formatDate(dateStr) {
     if (!dateStr) return '';
@@ -60,6 +70,57 @@ const pastWorkouts = computed(() => {
                 >
                     {{ flash.error }}
                 </div>
+                <!-- Notificaciones de entrenamientos asignados -->
+                <div v-if="notificaciones.length > 0" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                    <div class="border-b border-orange-100 bg-orange-50 p-4">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2">
+                                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">
+                                    {{ notificaciones.length }}
+                                </span>
+                                <h2 class="text-sm font-semibold text-orange-900">Nuevos entrenamientos asignados</h2>
+                            </div>
+                            <button
+                                type="button"
+                                class="text-xs font-medium text-orange-700 underline hover:text-orange-900"
+                                @click="dismissAllNotifications"
+                            >
+                                Marcar todas como leídas
+                            </button>
+                        </div>
+                    </div>
+                    <div class="divide-y divide-gray-100">
+                        <div
+                            v-for="notif in notificaciones"
+                            :key="notif.id"
+                            class="flex items-center justify-between gap-4 px-5 py-3"
+                        >
+                            <div class="flex items-start gap-3">
+                                <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-600">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                </span>
+                                <div>
+                                    <p class="text-sm font-semibold text-gray-900">{{ notif.workout_title }}</p>
+                                    <p class="text-xs text-gray-500">
+                                        <span v-if="notif.workout_date_formatted">📅 {{ notif.workout_date_formatted }} · </span>
+                                        {{ notif.created_at }}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                class="shrink-0 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                                @click="dismissNotification(notif.id)"
+                                title="Marcar como leída"
+                            >
+                                ✓ Leído
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Invitaciones pendientes -->
                 <div v-if="pendingInvitations.length > 0" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                     <div class="border-b border-gray-200 p-6">

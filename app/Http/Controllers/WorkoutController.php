@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use App\Http\Requests\GuardarWorkoutRequest;
 use App\Models\CustomExercise;
 use App\Models\PredefinedExercise;
+use App\Models\User;
 use App\Models\Workout;
 use App\Models\WorkoutExercise;
+use App\Notifications\WorkoutAsignadoNotification;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 class WorkoutController extends Controller
@@ -38,6 +41,10 @@ class WorkoutController extends Controller
         $successMessage = $workout->is_template
             ? 'Plantilla guardada correctamente.'
             : 'Entrenamiento creado correctamente para el '.$workout->workout_date?->format('d/m/Y').'.';
+
+        if (! $workout->is_template && $workout->target_scope === 'club' && $workout->club_id) {
+            $this->notifyClubMembers($workout, $trainer->id);
+        }
 
         return redirect()
             ->route('exercises.library')
@@ -67,6 +74,11 @@ class WorkoutController extends Controller
         $successMessage = $workout->fresh()->is_template
             ? 'Plantilla actualizada correctamente.'
             : 'Entrenamiento actualizado correctamente.';
+
+        $fresh = $workout->fresh();
+        if (! $fresh->is_template && $fresh->target_scope === 'club' && $fresh->club_id) {
+            $this->notifyClubMembers($fresh, $trainer->id);
+        }
 
         return redirect()
             ->route('exercises.library')
@@ -110,6 +122,19 @@ class WorkoutController extends Controller
         return redirect()
             ->route('exercises.library', ['edit_workout_id' => $duplicatedWorkout->id])
             ->with('success', 'Entrenamiento duplicado correctamente. Ya puedes ajustar la copia.');
+    }
+
+    private function notifyClubMembers(Workout $workout, int $excludeUserId): void
+    {
+        $members = User::where('club_id', $workout->club_id)
+            ->where('id', '!=', $excludeUserId)
+            ->get();
+
+        if ($members->isEmpty()) {
+            return;
+        }
+
+        Notification::send($members, new WorkoutAsignadoNotification($workout));
     }
 
     private function syncWorkoutExercises(Workout $workout, array $exerciseInputs, int $trainerId): void
