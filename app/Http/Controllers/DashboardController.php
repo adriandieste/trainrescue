@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Workout;
 use App\Notifications\WorkoutAsignadoNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -164,11 +165,12 @@ class DashboardController extends Controller
             }
 
             $entrenamientos = [];
+            $entrenamientoHoy = null;
             if ($user->club_id && Schema::hasTable('workouts') && Schema::hasTable('workout_exercises')) {
                 $supportsTemplates   = Schema::hasColumn('workouts', 'is_template');
                 $supportsAssignments = Schema::hasTable('workout_assignments');
 
-                $entrenamientos = Workout::with(['exercises.predefinedExercise', 'exercises.customExercise'])
+                $visibleWorkoutsQuery = Workout::with(['exercises.predefinedExercise', 'exercises.customExercise'])
                     ->where(function ($query) use ($user, $supportsAssignments) {
                         // Workouts de todo el club
                         $query->where(function ($q) use ($user) {
@@ -183,49 +185,64 @@ class DashboardController extends Controller
                             });
                         }
                     })
-                    ->when($supportsTemplates, fn ($query) => $query->where('is_template', false))
+                    ->when($supportsTemplates, fn ($query) => $query->where('is_template', false));
+
+                $entrenamientos = (clone $visibleWorkoutsQuery)
                     ->orderBy('workout_date', 'asc')
                     ->get()
-                    ->map(function (Workout $workout) {
-                        return [
-                            'id'                     => $workout->id,
-                            'title'                  => $workout->title,
-                            'workout_date'           => $workout->workout_date?->format('Y-m-d'),
-                            'workout_date_formatted' => $workout->workout_date?->format('d/m/Y'),
-                            'exercises'              => $workout->exercises->map(function ($line) {
-                                $name = $line->predefinedExercise?->name
-                                    ?? $line->customExercise?->name
-                                    ?? 'Ejercicio';
-                                $label = $line->sets . ' x';
-                                if ($line->meters) {
-                                    $label .= ' ' . $line->meters . 'm';
-                                } else {
-                                    $label .= ' series';
-                                }
-                                if ($line->rest_seconds !== null) {
-                                    $label .= ' — Descanso: ' . $line->rest_seconds . 's';
-                                }
-                                return [
-                                    'name'         => $name,
-                                    'sets'         => $line->sets,
-                                    'meters'       => $line->meters,
-                                    'rest_seconds' => $line->rest_seconds,
-                                    'load_label'   => $label,
-                                ];
-                            })->values()->all(),
-                        ];
-                    })
+                    ->map(fn (Workout $workout) => $this->mapWorkoutForAtletaDashboard($workout))
                     ->all();
+
+                $entrenamientoHoyModel = (clone $visibleWorkoutsQuery)
+                    ->whereDate('workout_date', Carbon::today())
+                    ->orderByDesc('created_at')
+                    ->first();
+
+                $entrenamientoHoy = $entrenamientoHoyModel
+                    ? $this->mapWorkoutForAtletaDashboard($entrenamientoHoyModel)
+                    : null;
             }
             return Inertia::render('DashboardAtleta', [
                 'invitationsTitle'   => 'Invitaciones',
                 'pendingInvitations' => $pendingInvitations,
                 'clubmates'          => $clubmates,
                 'entrenamientos'     => $entrenamientos,
+                'entrenamientoHoy'   => $entrenamientoHoy,
                 'notificaciones'     => $this->buildNotificaciones($user),
             ]);
         }
         abort(403, 'Acceso denegado: Rol no reconocido.');
+    }
+
+    private function mapWorkoutForAtletaDashboard(Workout $workout): array
+    {
+        return [
+            'id'                     => $workout->id,
+            'title'                  => $workout->title,
+            'workout_date'           => $workout->workout_date?->format('Y-m-d'),
+            'workout_date_formatted' => $workout->workout_date?->format('d/m/Y'),
+            'exercises'              => $workout->exercises->map(function ($line) {
+                $name = $line->predefinedExercise?->name
+                    ?? $line->customExercise?->name
+                    ?? 'Ejercicio';
+                $label = $line->sets . ' x';
+                if ($line->meters) {
+                    $label .= ' ' . $line->meters . 'm';
+                } else {
+                    $label .= ' series';
+                }
+                if ($line->rest_seconds !== null) {
+                    $label .= ' — Descanso: ' . $line->rest_seconds . 's';
+                }
+                return [
+                    'name'         => $name,
+                    'sets'         => $line->sets,
+                    'meters'       => $line->meters,
+                    'rest_seconds' => $line->rest_seconds,
+                    'load_label'   => $label,
+                ];
+            })->values()->all(),
+        ];
     }
 
     private function buildNotificaciones(User $user): array
