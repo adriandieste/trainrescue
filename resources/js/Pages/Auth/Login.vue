@@ -30,7 +30,7 @@ const submit = () => form.post(route('login'), { onFinish: () => form.reset('pas
                 <path fill="#4CAF50" d="M24 44c5.168 0 9.86-1.977 13.409-5.197l-6.19-5.238C29.144 35.091 26.692 36 24 36c-5.219 0-9.623-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
                 <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.03 12.03 0 0 1-4.084 5.565l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
             </svg>
-            Continuar con Google
+            Inicia sesión con Google
         </a>
 
         <form @submit.prevent="submit" class="space-y-5">

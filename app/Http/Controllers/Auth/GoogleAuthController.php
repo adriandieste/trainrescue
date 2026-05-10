@@ -60,7 +60,7 @@ class GoogleAuthController extends Controller
                 'google_id' => $googleUser->getId(),
                 'google_avatar' => $googleUser->getAvatar(),
                 'email_verified_at' => now(),
-                // "rol" mantiene su valor por defecto de DB (atleta)
+                'rol' => null,
             ]);
         }
 

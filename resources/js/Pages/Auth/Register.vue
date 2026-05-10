@@ -5,7 +5,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
-const form = useForm({ name: '', email: '', password: '', password_confirmation: '', rol: '' });
+const form = useForm({ name: '', email: '', password: '', password_confirmation: '' });
 const submit = () => form.post(route('register'), { onFinish: () => form.reset('password', 'password_confirmation') });
 </script>
 
@@ -28,7 +28,7 @@ const submit = () => form.post(route('register'), { onFinish: () => form.reset('
                 <path fill="#4CAF50" d="M24 44c5.168 0 9.86-1.977 13.409-5.197l-6.19-5.238C29.144 35.091 26.692 36 24 36c-5.219 0-9.623-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
                 <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.03 12.03 0 0 1-4.084 5.565l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
             </svg>
-            Continuar con Google
+            Regístrate con Google
         </a>
 
         <form @submit.prevent="submit" class="space-y-4">
@@ -56,23 +56,6 @@ const submit = () => form.post(route('register'), { onFinish: () => form.reset('
                     <TextInput id="password_confirmation" type="password" v-model="form.password_confirmation" required class="w-full !rounded-xl" />
                     <InputError :message="form.errors.password_confirmation" />
                 </div>
-            </div>
-
-            <div>
-                <InputLabel value="¿Quién eres?" class="mb-3" />
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <button type="button" @click="form.rol = 'socorrista'"
-                            :class="['flex-1 p-4 rounded-2xl border-2 transition-all flex items-center gap-3', form.rol === 'socorrista' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-100 hover:border-blue-200']">
-                        <div class="bg-blue-100 p-2 rounded-lg text-blue-600">👤</div>
-                        <span class="font-bold text-slate-700">Socorrista</span>
-                    </button>
-                    <button type="button" @click="form.rol = 'entrenador'"
-                            :class="['flex-1 p-4 rounded-2xl border-2 transition-all flex items-center gap-3', form.rol === 'entrenador' ? 'border-orange-400 bg-orange-50 shadow-md' : 'border-slate-100 hover:border-orange-200']">
-                        <div class="bg-orange-100 p-2 rounded-lg text-orange-600">📋</div>
-                        <span class="font-bold text-slate-700">Entrenador</span>
-                    </button>
-                </div>
-                <InputError :message="form.errors.rol" />
             </div>
 
             <button type="submit" :disabled="form.processing" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/30 transition-all mt-4">

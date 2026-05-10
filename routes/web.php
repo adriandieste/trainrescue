@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ClubController;
 use App\Http\Controllers\ClubInvitationController;
@@ -71,6 +72,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // [TRA-399] Onboarding: persistir el rol elegido en el modal post-login
+    Route::post('/onboarding/update-rol', [OnboardingController::class, 'updateRole'])->name('onboarding.update-rol');
 });
 
 require __DIR__.'/auth.php';
