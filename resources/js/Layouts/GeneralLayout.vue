@@ -1,11 +1,13 @@
 <script setup>
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import ClubInvitationsBell from '@/Components/ClubInvitationsBell.vue';
+import RolSelectionModal from '@/Components/RolSelectionModal.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 const page = usePage();
 const isEntrenador = computed(() => page.props.auth?.user?.rol === 'entrenador');
+const mustSelectRole = computed(() => page.props.mustSelectRole === true);
 const workoutRoute = computed(() => isEntrenador.value ? route('exercises.library') : route('entrenamientos.index'));
 const workoutActive = computed(() => isEntrenador.value ? route().current('exercises.*') : route().current('entrenamientos.*'));
 const calendarRoute = computed(() => isEntrenador.value ? route('calendar.index') : route('calendario.atleta'));
@@ -133,5 +135,8 @@ const calendarActive = computed(() => route().current('calendar.*') || route().c
                 <slot />
             </div>
         </main>
+
+        <!-- [TRA-397/398] Modal obligatorio de selección de rol para usuarios nuevos -->
+        <RolSelectionModal :show="mustSelectRole" />
     </div>
 </template>
