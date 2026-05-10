@@ -165,11 +165,24 @@ class DashboardController extends Controller
 
             $entrenamientos = [];
             if ($user->club_id && Schema::hasTable('workouts') && Schema::hasTable('workout_exercises')) {
-                $supportsTemplates = Schema::hasColumn('workouts', 'is_template');
+                $supportsTemplates   = Schema::hasColumn('workouts', 'is_template');
+                $supportsAssignments = Schema::hasTable('workout_assignments');
 
                 $entrenamientos = Workout::with(['exercises.predefinedExercise', 'exercises.customExercise'])
-                    ->where('club_id', $user->club_id)
-                    ->where('target_scope', 'club')
+                    ->where(function ($query) use ($user, $supportsAssignments) {
+                        // Workouts de todo el club
+                        $query->where(function ($q) use ($user) {
+                            $q->where('club_id', $user->club_id)
+                              ->where('target_scope', 'club');
+                        });
+                        // Workouts de grupo donde este atleta está asignado específicamente
+                        if ($supportsAssignments) {
+                            $query->orWhere(function ($q) use ($user) {
+                                $q->where('target_scope', 'grupo')
+                                  ->whereHas('assignedUsers', fn ($rel) => $rel->where('users.id', $user->id));
+                            });
+                        }
+                    })
                     ->when($supportsTemplates, fn ($query) => $query->where('is_template', false))
                     ->orderBy('workout_date', 'asc')
                     ->get()

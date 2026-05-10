@@ -705,4 +705,205 @@ class WorkoutBuilderTest extends TestCase
         Notification::assertSentTo($socorrista, WorkoutAsignadoNotification::class);
         Notification::assertNotSentTo($trainer, WorkoutAsignadoNotification::class);
     }
+
+    // ─── HU-39: Asignación a grupos específicos del club ─────────────────────
+
+    private function makeClubWithTrainerAndMembers(): array
+    {
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+        $club    = Club::create([
+            'name'          => 'Club HU-39',
+            'admin_user_id' => $trainer->id,
+        ]);
+        $trainer->update(['club_id' => $club->id]);
+
+        $member1 = User::factory()->create(['rol' => 'socorrista', 'club_id' => $club->id]);
+        $member2 = User::factory()->create(['rol' => 'socorrista', 'club_id' => $club->id]);
+        $member3 = User::factory()->create(['rol' => 'socorrista', 'club_id' => $club->id]);
+
+        $predefined = PredefinedExercise::create([
+            'name'                  => 'Ejercicio grupo',
+            'category'              => 'resistencia',
+            'technical_description' => 'Descripcion',
+            'materials'             => [],
+            'is_active'             => true,
+        ]);
+
+        return compact('trainer', 'club', 'member1', 'member2', 'member3', 'predefined');
+    }
+
+    public function test_trainer_can_create_grupo_workout_assigned_to_specific_members(): void
+    {
+        Notification::fake();
+        ['trainer' => $trainer, 'member1' => $member1, 'member2' => $member2,
+         'member3' => $member3, 'predefined' => $predefined] = $this->makeClubWithTrainerAndMembers();
+
+        $response = $this->actingAs($trainer)->post(route('workouts.store'), [
+            'title'             => 'Sesion Grupo A',
+            'workout_date'      => '2026-06-15',
+            'target_scope'      => 'grupo',
+            'assigned_user_ids' => [$member1->id, $member2->id],
+            'exercises'         => [[
+                'source'      => 'predefined',
+                'exercise_id' => $predefined->id,
+                'sets'        => 3,
+                'meters'      => 100,
+                'rest_seconds'=> 30,
+            ]],
+        ]);
+
+        $response->assertRedirect(route('exercises.library'));
+        $flash = $response->baseResponse->getSession()->get('success');
+        $this->assertStringContainsString('2 atletas', $flash);
+
+        $workout = Workout::where('title', 'Sesion Grupo A')->first();
+        $this->assertNotNull($workout);
+        $this->assertSame('grupo', $workout->target_scope);
+
+        $this->assertDatabaseHas('workout_assignments', ['workout_id' => $workout->id, 'user_id' => $member1->id]);
+        $this->assertDatabaseHas('workout_assignments', ['workout_id' => $workout->id, 'user_id' => $member2->id]);
+        $this->assertDatabaseMissing('workout_assignments', ['workout_id' => $workout->id, 'user_id' => $member3->id]);
+
+        Notification::assertSentTo($member1, WorkoutAsignadoNotification::class);
+        Notification::assertSentTo($member2, WorkoutAsignadoNotification::class);
+        Notification::assertNotSentTo($member3, WorkoutAsignadoNotification::class);
+        Notification::assertNotSentTo($trainer, WorkoutAsignadoNotification::class);
+    }
+
+    public function test_grupo_workout_only_visible_to_assigned_members_on_dashboard(): void
+    {
+        ['trainer' => $trainer, 'member1' => $member1, 'member2' => $member2,
+         'member3' => $member3, 'predefined' => $predefined] = $this->makeClubWithTrainerAndMembers();
+
+        // Crear workout de grupo asignado solo a member1
+        $this->actingAs($trainer)->post(route('workouts.store'), [
+            'title'             => 'Solo para Grupo A',
+            'workout_date'      => '2026-06-20',
+            'target_scope'      => 'grupo',
+            'assigned_user_ids' => [$member1->id],
+            'exercises'         => [[
+                'source'      => 'predefined',
+                'exercise_id' => $predefined->id,
+                'sets'        => 4,
+            ]],
+        ]);
+
+        $workout = Workout::where('title', 'Solo para Grupo A')->first();
+
+        // member1 asignado: lo ve en su dashboard
+        $dashboardAssigned = $this->actingAs($member1)->get(route('dashboard'));
+        $dashboardAssigned->assertOk();
+        $entrenamientos = collect($dashboardAssigned->original?->getData()['page']['props']['entrenamientos'] ?? []);
+        $ids = collect($dashboardAssigned->original?->getData()['page']['props']['entrenamientos'] ?? [])
+            ->pluck('id')->toArray();
+        $this->assertContains($workout->id, $ids, 'El atleta asignado debería ver el workout de grupo.');
+
+        // member3 NO asignado: NO lo ve en su dashboard
+        $dashboardNotAssigned = $this->actingAs($member3)->get(route('dashboard'));
+        $idsNotAssigned = collect($dashboardNotAssigned->original?->getData()['page']['props']['entrenamientos'] ?? [])
+            ->pluck('id')->toArray();
+        $this->assertNotContains($workout->id, $idsNotAssigned, 'El atleta no asignado NO debería ver el workout de grupo.');
+    }
+
+    public function test_grupo_workout_requires_at_least_one_assigned_user(): void
+    {
+        ['trainer' => $trainer, 'predefined' => $predefined] = $this->makeClubWithTrainerAndMembers();
+
+        $response = $this->actingAs($trainer)->post(route('workouts.store'), [
+            'title'             => 'Grupo sin atletas',
+            'workout_date'      => '2026-06-25',
+            'target_scope'      => 'grupo',
+            'assigned_user_ids' => [],
+            'exercises'         => [[
+                'source'      => 'predefined',
+                'exercise_id' => $predefined->id,
+                'sets'        => 2,
+            ]],
+        ]);
+
+        $response->assertSessionHasErrors('assigned_user_ids');
+        $this->assertDatabaseMissing('workouts', ['title' => 'Grupo sin atletas']);
+    }
+
+    public function test_grupo_workout_rejects_users_outside_club(): void
+    {
+        ['trainer' => $trainer, 'predefined' => $predefined] = $this->makeClubWithTrainerAndMembers();
+
+        $outsider = User::factory()->create(['rol' => 'socorrista', 'club_id' => null]);
+
+        $response = $this->actingAs($trainer)->post(route('workouts.store'), [
+            'title'             => 'Grupo con foraneo',
+            'workout_date'      => '2026-06-30',
+            'target_scope'      => 'grupo',
+            'assigned_user_ids' => [$outsider->id],
+            'exercises'         => [[
+                'source'      => 'predefined',
+                'exercise_id' => $predefined->id,
+                'sets'        => 2,
+            ]],
+        ]);
+
+        $response->assertSessionHasErrors('assigned_user_ids');
+        $this->assertDatabaseMissing('workouts', ['title' => 'Grupo con foraneo']);
+    }
+
+    public function test_single_member_grupo_workout_shows_singular_in_success_message(): void
+    {
+        ['trainer' => $trainer, 'member1' => $member1,
+         'predefined' => $predefined] = $this->makeClubWithTrainerAndMembers();
+
+        $response = $this->actingAs($trainer)->post(route('workouts.store'), [
+            'title'             => 'Sesion Individual',
+            'workout_date'      => '2026-07-01',
+            'target_scope'      => 'grupo',
+            'assigned_user_ids' => [$member1->id],
+            'exercises'         => [[
+                'source'      => 'predefined',
+                'exercise_id' => $predefined->id,
+                'sets'        => 3,
+            ]],
+        ]);
+
+        $flash = $response->baseResponse->getSession()->get('success');
+        $this->assertStringContainsString('1 atleta', $flash);
+        $this->assertStringNotContainsString('atletas', $flash);
+    }
+
+    public function test_updating_grupo_workout_syncs_assignments_and_notifies_new_members(): void
+    {
+        Notification::fake();
+        ['trainer' => $trainer, 'member1' => $member1, 'member2' => $member2,
+         'member3' => $member3, 'predefined' => $predefined] = $this->makeClubWithTrainerAndMembers();
+
+        // Crear workout de grupo con member1 y member2
+        $this->actingAs($trainer)->post(route('workouts.store'), [
+            'title'             => 'Sesion grupal',
+            'workout_date'      => '2026-07-10',
+            'target_scope'      => 'grupo',
+            'assigned_user_ids' => [$member1->id, $member2->id],
+            'exercises'         => [['source' => 'predefined', 'exercise_id' => $predefined->id, 'sets' => 3]],
+        ]);
+
+        $workout = Workout::where('title', 'Sesion grupal')->first();
+        Notification::fake();
+
+        // Actualizar a solo member3
+        $this->actingAs($trainer)->patch(route('workouts.update', $workout), [
+            'title'             => 'Sesion grupal v2',
+            'workout_date'      => '2026-07-10',
+            'target_scope'      => 'grupo',
+            'assigned_user_ids' => [$member3->id],
+            'exercises'         => [['source' => 'predefined', 'exercise_id' => $predefined->id, 'sets' => 5]],
+        ])->assertRedirect(route('exercises.library'));
+
+        $this->assertDatabaseMissing('workout_assignments', ['workout_id' => $workout->id, 'user_id' => $member1->id]);
+        $this->assertDatabaseMissing('workout_assignments', ['workout_id' => $workout->id, 'user_id' => $member2->id]);
+        $this->assertDatabaseHas('workout_assignments', ['workout_id' => $workout->id, 'user_id' => $member3->id]);
+
+        Notification::assertSentTo($member3, WorkoutAsignadoNotification::class);
+        Notification::assertNotSentTo($member1, WorkoutAsignadoNotification::class);
+        Notification::assertNotSentTo($member2, WorkoutAsignadoNotification::class);
+    }
 }
+
+

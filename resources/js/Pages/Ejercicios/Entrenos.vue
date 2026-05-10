@@ -24,6 +24,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    clubMembers: {
+        type: Array,
+        default: () => [],
+    },
     editWorkoutId: {
         type: Number,
         default: null,
@@ -86,6 +90,7 @@ const entrenamientoForm = useForm({
     workout_date: '',
     target_scope: hasClub.value ? 'club' : 'personal',
     is_template: false,
+    assigned_user_ids: [],
     exercises: [],
 });
 
@@ -122,6 +127,10 @@ const isTrainingInvalid = computed(() => {
         return true;
     }
 
+    if (entrenamientoForm.target_scope === 'grupo' && entrenamientoForm.assigned_user_ids.length === 0) {
+        return true;
+    }
+
     return entrenamientoForm.exercises.some((item) => !item.sets || item.sets < 1);
 });
 
@@ -130,10 +139,11 @@ function sourceLabel(source) {
 }
 
 function resetTrainingForm() {
-    entrenamientoForm.reset('title', 'workout_date', 'target_scope', 'is_template', 'exercises');
+    entrenamientoForm.reset('title', 'workout_date', 'target_scope', 'is_template', 'assigned_user_ids', 'exercises');
     entrenamientoForm.clearErrors();
     entrenamientoForm.target_scope = hasClub.value ? 'club' : 'personal';
     entrenamientoForm.is_template = false;
+    entrenamientoForm.assigned_user_ids = [];
     editingTrainingId.value = null;
     pendingRemoveIndex.value = null;
 }
@@ -160,6 +170,7 @@ function openTrainingEditor(entrenamiento) {
     entrenamientoForm.workout_date = entrenamiento.workout_date ?? '';
     entrenamientoForm.target_scope = entrenamiento.target_scope ?? (hasClub.value ? 'club' : 'personal');
     entrenamientoForm.is_template = Boolean(entrenamiento.is_template);
+    entrenamientoForm.assigned_user_ids = entrenamiento.assigned_user_ids ?? [];
     entrenamientoForm.exercises = (entrenamiento.exercises ?? []).map((item) => ({
         source: item.source,
         exercise_id: item.exercise_id,
@@ -208,8 +219,11 @@ function useTemplate(template) {
     entrenamientoForm.clearErrors();
     entrenamientoForm.title = template.title ?? '';
     entrenamientoForm.workout_date = '';
-    entrenamientoForm.target_scope = template.target_scope ?? (hasClub.value ? 'club' : 'personal');
+    entrenamientoForm.target_scope = template.target_scope === 'grupo'
+        ? (hasClub.value ? 'club' : 'personal')
+        : (template.target_scope ?? (hasClub.value ? 'club' : 'personal'));
     entrenamientoForm.is_template = false;
+    entrenamientoForm.assigned_user_ids = [];
     entrenamientoForm.exercises = (template.exercises ?? []).map((item) => ({
         source: item.source,
         exercise_id: item.exercise_id,
@@ -292,6 +306,7 @@ function submitTraining() {
         ...data,
         is_template: Boolean(data.is_template),
         workout_date: data.is_template ? null : data.workout_date,
+        assigned_user_ids: data.target_scope === 'grupo' ? data.assigned_user_ids : [],
         exercises: data.exercises.map((item) => ({
             source: item.source,
             exercise_id: item.exercise_id,
@@ -323,6 +338,16 @@ watch(() => entrenamientoForm.is_template, (isTemplate) => {
         entrenamientoForm.workout_date = '';
     }
 });
+
+watch(() => entrenamientoForm.target_scope, (scope) => {
+    if (scope !== 'grupo') {
+        entrenamientoForm.assigned_user_ids = [];
+    }
+});
+
+function selectAllClubMembers() {
+    entrenamientoForm.assigned_user_ids = props.clubMembers.map((m) => m.id);
+}
 
 const form = useForm({
     name: '',
@@ -557,9 +582,62 @@ function formatCategory(category) {
                             class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="personal">Mis alumnos personales</option>
-                            <option v-if="hasClub" value="club">Mi club</option>
+                            <option v-if="hasClub" value="club">Todo mi club</option>
+                            <option v-if="hasClub" value="grupo">Grupo específico del club</option>
                         </select>
                         <p v-if="entrenamientoForm.errors.target_scope" class="mt-1 text-xs text-red-600">{{ entrenamientoForm.errors.target_scope }}</p>
+                    </div>
+
+                    <!-- Selector de miembros del grupo -->
+                    <div v-if="entrenamientoForm.target_scope === 'grupo' && hasClub" class="max-w-sm rounded-xl border border-purple-200 bg-purple-50 p-4">
+                        <div class="mb-2 flex items-center justify-between gap-2">
+                            <label class="text-sm font-semibold text-purple-900">
+                                Seleccionar atletas del grupo *
+                            </label>
+                            <button
+                                type="button"
+                                class="text-xs font-medium text-purple-700 hover:underline"
+                                @click="selectAllClubMembers"
+                            >
+                                Seleccionar todos
+                            </button>
+                        </div>
+                        <div v-if="clubMembers.length === 0" class="rounded-lg border border-dashed border-purple-300 bg-white p-3 text-sm italic text-purple-600">
+                            No hay otros miembros en tu club.
+                        </div>
+                        <div v-else class="max-h-44 overflow-y-auto space-y-1 rounded-lg border border-purple-200 bg-white p-2">
+                            <label
+                                v-for="member in clubMembers"
+                                :key="member.id"
+                                class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 transition hover:bg-purple-50"
+                            >
+                                <input
+                                    type="checkbox"
+                                    :value="member.id"
+                                    v-model="entrenamientoForm.assigned_user_ids"
+                                    class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                >
+                                <span class="flex-1 text-sm text-gray-800">{{ member.name }}</span>
+                                <span
+                                    class="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                                    :class="member.role_label === 'Entrenador' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'"
+                                >
+                                    {{ member.role_label }}
+                                </span>
+                            </label>
+                        </div>
+                        <div class="mt-2 flex items-center gap-1 text-xs">
+                            <span
+                                class="font-medium"
+                                :class="entrenamientoForm.assigned_user_ids.length === 0 ? 'text-red-600' : 'text-green-700'"
+                            >
+                                {{ entrenamientoForm.assigned_user_ids.length }}
+                                {{ entrenamientoForm.assigned_user_ids.length === 1 ? 'atleta seleccionado' : 'atletas seleccionados' }}
+                            </span>
+                        </div>
+                        <p v-if="entrenamientoForm.errors.assigned_user_ids" class="mt-1 text-xs text-red-600">
+                            {{ entrenamientoForm.errors.assigned_user_ids }}
+                        </p>
                     </div>
 
                     <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -922,7 +1000,14 @@ function formatCategory(category) {
                                 <div class="flex items-start justify-between gap-2">
                                     <div>
                                         <p class="font-semibold text-gray-800">{{ entrenamiento.title }}</p>
-                                        <p class="text-gray-500">{{ entrenamiento.workout_date }} · {{ entrenamiento.target_scope === 'club' ? 'Club' : 'Personal' }}</p>
+                                        <p class="text-gray-500">
+                                            {{ entrenamiento.workout_date }} ·
+                                            <span v-if="entrenamiento.target_scope === 'club'">Todo el club</span>
+                                            <span v-else-if="entrenamiento.target_scope === 'grupo'" class="font-semibold text-purple-700">
+                                                Grupo · {{ entrenamiento.assigned_user_ids?.length ?? 0 }} {{ (entrenamiento.assigned_user_ids?.length ?? 0) === 1 ? 'atleta' : 'atletas' }}
+                                            </span>
+                                            <span v-else>Personal</span>
+                                        </p>
                                     </div>
                                     <div v-if="entrenamiento.can_edit" class="flex items-center gap-1">
                                         <button
@@ -956,7 +1041,7 @@ function formatCategory(category) {
                                 <div class="flex items-start justify-between gap-2">
                                     <div>
                                         <p class="font-semibold text-indigo-900">{{ plantilla.title }}</p>
-                                        <p class="text-indigo-700">{{ plantilla.exercises.length }} {{ plantilla.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }} · {{ plantilla.target_scope === 'club' ? 'Club' : 'Personal' }}</p>
+                                        <p class="text-indigo-700">{{ plantilla.exercises.length }} {{ plantilla.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }} · {{ plantilla.target_scope === 'club' ? 'Club' : plantilla.target_scope === 'grupo' ? 'Grupo' : 'Personal' }}</p>
                                     </div>
                                     <div class="flex items-center gap-1">
                                         <button
