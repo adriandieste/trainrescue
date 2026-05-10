@@ -20,6 +20,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    calendarEvents: {
+        type: Array,
+        default: () => [],
+    },
     hasClub: {
         type: Boolean,
         default: false,
@@ -43,6 +47,158 @@ const flash = computed(() => page.props.flash ?? {});
 const hasClub = computed(() => props.hasClub);
 const entrenamientos = computed(() => props.entrenamientos ?? []);
 const plantillas = computed(() => props.plantillas ?? []);
+const calendarEvents = computed(() => props.calendarEvents ?? []);
+
+const calendarView = ref('month');
+const calendarCursor = ref(new Date());
+const calendarDateFilter = ref('');
+const calendarAthleteFilter = ref('all');
+const calendarGroupFilter = ref('all');
+
+const weekdayLabels = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+
+function formatDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function parseDateKey(dateKey) {
+    const [year, month, day] = String(dateKey).split('-').map(Number);
+    return new Date(year, (month || 1) - 1, day || 1);
+}
+
+function startOfWeek(date) {
+    const base = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const day = base.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    base.setDate(base.getDate() + diffToMonday);
+    return base;
+}
+
+function sameMemberSet(a, b) {
+    const left = [...new Set((a ?? []).map(Number))].sort((x, y) => x - y);
+    const right = [...new Set((b ?? []).map(Number))].sort((x, y) => x - y);
+    if (left.length !== right.length) {
+        return false;
+    }
+    return left.every((value, index) => value === right[index]);
+}
+
+const filteredCalendarEvents = computed(() => {
+    const athleteId = calendarAthleteFilter.value === 'all' ? null : Number(calendarAthleteFilter.value);
+    const group = calendarGroupFilter.value === 'all'
+        ? null
+        : props.groups.find((item) => Number(item.id) === Number(calendarGroupFilter.value));
+
+    return calendarEvents.value.filter((event) => {
+        if (!event.workout_date) {
+            return false;
+        }
+
+        if (calendarDateFilter.value && event.workout_date !== calendarDateFilter.value) {
+            return false;
+        }
+
+        if (athleteId) {
+            if (event.target_scope === 'club') {
+                // Entrenamiento de club aplica a todos los miembros
+            } else if (event.target_scope === 'grupo') {
+                if (!event.assigned_user_ids?.includes(athleteId)) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        if (group) {
+            if (event.target_scope !== 'grupo') {
+                return false;
+            }
+
+            if (!sameMemberSet(event.assigned_user_ids, group.user_ids)) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+});
+
+const eventsByDate = computed(() => {
+    const map = new Map();
+    for (const event of filteredCalendarEvents.value) {
+        if (!map.has(event.workout_date)) {
+            map.set(event.workout_date, []);
+        }
+        map.get(event.workout_date).push(event);
+    }
+    return map;
+});
+
+const calendarDays = computed(() => {
+    if (calendarView.value === 'week') {
+        const start = startOfWeek(calendarCursor.value);
+        return Array.from({ length: 7 }, (_, index) => {
+            const day = new Date(start);
+            day.setDate(start.getDate() + index);
+            return {
+                key: formatDateKey(day),
+                day,
+                inCurrentMonth: true,
+                events: eventsByDate.value.get(formatDateKey(day)) ?? [],
+            };
+        });
+    }
+
+    const year = calendarCursor.value.getFullYear();
+    const month = calendarCursor.value.getMonth();
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0);
+    const gridStart = startOfWeek(monthStart);
+    const totalDays = Math.ceil((monthEnd.getDate() + (monthStart.getDay() === 0 ? 6 : monthStart.getDay() - 1)) / 7) * 7;
+
+    return Array.from({ length: totalDays }, (_, index) => {
+        const day = new Date(gridStart);
+        day.setDate(gridStart.getDate() + index);
+        return {
+            key: formatDateKey(day),
+            day,
+            inCurrentMonth: day.getMonth() === month,
+            events: eventsByDate.value.get(formatDateKey(day)) ?? [],
+        };
+    });
+});
+
+const calendarTitle = computed(() => {
+    if (calendarView.value === 'week') {
+        const start = calendarDays.value[0]?.day;
+        const end = calendarDays.value[6]?.day;
+        if (!start || !end) {
+            return 'Semana';
+        }
+        return `${start.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} - ${end.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+    }
+
+    return calendarCursor.value.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+});
+
+function shiftCalendar(step) {
+    const next = new Date(calendarCursor.value);
+    if (calendarView.value === 'week') {
+        next.setDate(next.getDate() + (step * 7));
+    } else {
+        next.setMonth(next.getMonth() + step);
+    }
+    calendarCursor.value = next;
+}
+
+function goToToday() {
+    const today = new Date();
+    calendarCursor.value = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+}
 
 const search = ref('');
 const selectedCategory = ref('all');
@@ -215,12 +371,33 @@ function openTrainingEditorById(trainingId) {
 
     if (toEdit) {
         openTrainingEditor(toEdit);
+        return;
     }
+
+    router.get(route('exercises.library'), { edit_workout_id: Number(trainingId) }, {
+        preserveScroll: false,
+    });
+}
+
+function openCalendarEvent(event) {
+    if (!event?.can_edit) {
+        return;
+    }
+
+    openTrainingEditorById(event.id);
 }
 
 watch(() => props.editWorkoutId, (trainingId) => {
     openTrainingEditorById(trainingId);
 }, { immediate: true });
+
+watch(calendarDateFilter, (dateKey) => {
+    if (!dateKey) {
+        return;
+    }
+
+    calendarCursor.value = parseDateKey(dateKey);
+});
 
 function addExerciseToTraining(exercise) {
     entrenamientoForm.clearErrors();
