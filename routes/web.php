@@ -16,6 +16,7 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/calendario', [DashboardController::class, 'calendarioAtleta'])->name('calendario.atleta');
 
     // Ruta de abandono voluntario disponible para cualquier usuario autenticado
     Route::delete('/clubs/leave', [ClubController::class, 'leave'])->name('clubs.leave');
@@ -51,6 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/club-invitations/{clubInvitation}/accept', [ClubInvitationController::class, 'accept'])->name('club-invitations.accept');
     Route::post('/club-invitations/{clubInvitation}/reject', [ClubInvitationController::class, 'reject'])->name('club-invitations.reject');
+    Route::patch('/workouts/{workout}/complete', [DashboardController::class, 'markWorkoutCompleted'])->name('workouts.complete');
 
     Route::patch('/notificaciones/{id}/leer', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::patch('/notificaciones/leer-todas', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
