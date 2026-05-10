@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Club;
+use App\Models\CustomExercise;
 use App\Models\User;
+use App\Models\Workout;
+use App\Models\WorkoutExercise;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -180,5 +183,51 @@ class ProfileTest extends TestCase
             ->assertRedirect('/profile');
 
         $this->assertNotNull($user->fresh());
+    }
+
+    public function test_user_can_delete_their_account_when_custom_exercises_are_used_in_other_workouts(): void
+    {
+        $owner = User::factory()->create();
+        $otherTrainer = User::factory()->create();
+
+        $customExercise = CustomExercise::create([
+            'user_id' => $owner->id,
+            'name' => 'Remada con aletas',
+            'description' => 'Serie técnica de remada',
+            'default_sets' => 3,
+            'default_rest_seconds' => 45,
+        ]);
+
+        $workout = Workout::create([
+            'creator_user_id' => $otherTrainer->id,
+            'title' => 'Entreno mixto',
+            'workout_date' => now()->toDateString(),
+            'target_scope' => 'club',
+        ]);
+
+        WorkoutExercise::create([
+            'workout_id' => $workout->id,
+            'custom_exercise_id' => $customExercise->id,
+            'sort_order' => 0,
+            'sets' => 4,
+            'meters' => 100,
+            'rest_seconds' => 30,
+        ]);
+
+        $response = $this
+            ->actingAs($owner)
+            ->delete('/profile', [
+                'password' => 'password',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/');
+
+        $this->assertGuest();
+        $this->assertNull($owner->fresh());
+
+        $customExercise->refresh();
+        $this->assertNull($customExercise->user_id);
     }
 }
