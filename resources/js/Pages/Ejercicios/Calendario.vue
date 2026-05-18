@@ -2,6 +2,7 @@
 import GeneralLayout from '@/Layouts/GeneralLayout.vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
+import axios from 'axios';
 
 const props = defineProps({
     calendarEvents: {
@@ -25,12 +26,19 @@ const props = defineProps({
 const page = usePage();
 const flash = computed(() => page.props.flash ?? {});
 
-const calendarEvents = computed(() => props.calendarEvents ?? []);
+const calendarEvents = ref([...(props.calendarEvents ?? [])]);
 const calendarView = ref('month');
 const calendarCursor = ref(new Date());
 const calendarDateFilter = ref('');
 const calendarAthleteFilter = ref('all');
 const calendarGroupFilter = ref('all');
+
+const draggedEvent = ref(null);
+const dragOverDate = ref(null);
+const toastMessage = ref('');
+const toastType = ref('success');
+const showToast = ref(false);
+const rescheduleInProgress = ref(false);
 
 const weekdayLabels = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
 
@@ -187,6 +195,87 @@ function openCalendarEvent(event) {
     });
 }
 
+function onDragStart(event, workoutEvent) {
+    draggedEvent.value = {
+        id: workoutEvent.id,
+        originalDate: workoutEvent.workout_date,
+        title: workoutEvent.title,
+    };
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(workoutEvent.id));
+}
+
+function onDragEnd() {
+    draggedEvent.value = null;
+    dragOverDate.value = null;
+}
+
+function onDragOver(event, dateKey) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    dragOverDate.value = dateKey;
+}
+
+function onDragLeave() {
+    dragOverDate.value = null;
+}
+
+async function onDrop(event, targetDateKey) {
+    event.preventDefault();
+    dragOverDate.value = null;
+
+    if (!draggedEvent.value) {
+        return;
+    }
+
+    const { id: workoutId, originalDate, title } = draggedEvent.value;
+
+    if (targetDateKey === originalDate) {
+        draggedEvent.value = null;
+        return;
+    }
+
+    const eventIndex = calendarEvents.value.findIndex((e) => e.id === workoutId);
+    if (eventIndex === -1) {
+        draggedEvent.value = null;
+        return;
+    }
+
+    const oldEvent = { ...calendarEvents.value[eventIndex] };
+    calendarEvents.value[eventIndex].workout_date = targetDateKey;
+
+    draggedEvent.value = null;
+    rescheduleInProgress.value = true;
+
+    try {
+        const response = await axios.patch(route('workouts.reschedule', workoutId), {
+            workout_date: targetDateKey,
+        });
+
+        showToastMessage(`✓ ${title} reprogramado al ${formatDateForDisplay(targetDateKey)}`, 'success');
+    } catch (error) {
+        calendarEvents.value[eventIndex] = oldEvent;
+        showToastMessage(`✗ Error al reprogramar: ${error.response?.data?.message || 'Intenta de nuevo'}`, 'error');
+    } finally {
+        rescheduleInProgress.value = false;
+    }
+}
+
+function showToastMessage(message, type = 'success') {
+    toastMessage.value = message;
+    toastType.value = type;
+    showToast.value = true;
+
+    setTimeout(() => {
+        showToast.value = false;
+    }, 4000);
+}
+
+function formatDateForDisplay(dateKey) {
+    const [year, month, day] = String(dateKey).split('-');
+    return `${day}/${month}/${year}`;
+}
+
 watch(calendarDateFilter, (dateKey) => {
     if (!dateKey) {
         return;
@@ -299,8 +388,14 @@ watch(calendarDateFilter, (dateKey) => {
                         <div
                             v-for="day in calendarDays"
                             :key="day.key"
-                            class="min-h-28 rounded-lg border p-2"
-                            :class="day.inCurrentMonth ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50/60 text-gray-400'"
+                            class="min-h-28 rounded-lg border p-2 transition"
+                            :class="[
+                                day.inCurrentMonth ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50/60 text-gray-400',
+                                dragOverDate === day.key ? 'border-blue-400 bg-blue-50 ring-2 ring-blue-300' : '',
+                            ]"
+                            @dragover="onDragOver($event, day.key)"
+                            @dragleave="onDragLeave"
+                            @drop="onDrop($event, day.key)"
                         >
                             <div class="mb-1 flex items-center justify-between">
                                 <span class="text-xs font-semibold">{{ day.day.getDate() }}</span>
@@ -314,12 +409,18 @@ watch(calendarDateFilter, (dateKey) => {
                                     v-for="event in day.events.slice(0, 3)"
                                     :key="`calendar-event-${event.id}`"
                                     type="button"
-                                    class="block w-full truncate rounded-md px-2 py-1 text-left text-[11px] font-medium"
-                                    :class="event.target_scope === 'club'
-                                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                                        : event.target_scope === 'grupo'
-                                            ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                                    draggable="true"
+                                    class="block w-full truncate rounded-md px-2 py-1 text-left text-[11px] font-medium transition"
+                                    :class="[
+                                        draggedEvent?.id === event.id ? 'opacity-50 shadow-lg ring-2 ring-blue-300' : '',
+                                        event.target_scope === 'club'
+                                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 cursor-grab active:cursor-grabbing'
+                                            : event.target_scope === 'grupo'
+                                                ? 'bg-purple-100 text-purple-700 hover:bg-purple-200 cursor-grab active:cursor-grabbing'
+                                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-grab active:cursor-grabbing'
+                                    ]"
+                                    @dragstart="onDragStart($event, event)"
+                                    @dragend="onDragEnd"
                                     @click="openCalendarEvent(event)"
                                 >
                                     {{ event.title }}
@@ -336,6 +437,19 @@ watch(calendarDateFilter, (dateKey) => {
                     </p>
                 </div>
             </div>
+            <transition name="toast">
+                <div v-if="showToast" class="fixed bottom-4 right-4 max-w-sm rounded-lg shadow-lg" :class="[
+                    toastType === 'success'
+                        ? 'border border-green-200 bg-green-50 text-green-800'
+                        : 'border border-red-200 bg-red-50 text-red-800'
+                ]">
+                    <div class="flex items-center gap-3 p-4">
+                        <span v-if="toastType === 'success'" class="text-green-600">✓</span>
+                        <span v-else class="text-red-600">✕</span>
+                        <p class="text-sm font-medium">{{ toastMessage }}</p>
+                    </div>
+                </div>
+            </transition>
         </div>
     </GeneralLayout>
 </template>
