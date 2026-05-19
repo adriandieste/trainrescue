@@ -28,7 +28,7 @@ function markAllAsRead() {
 </script>
 
 <template>
-    <Dropdown align="right" width="80" content-classes="py-2 bg-white">
+    <Dropdown align="right" width="96" content-classes="py-2 bg-white">
         <template #trigger>
             <button
                 type="button"
@@ -49,7 +49,7 @@ function markAllAsRead() {
         </template>
 
         <template #content>
-            <div class="max-h-[32rem] overflow-y-auto">
+            <div class="max-h-[48rem] overflow-y-auto">
                 <!-- Cabecera -->
                 <div class="flex items-center justify-between border-b border-gray-100 px-4 py-2">
                     <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Notificaciones</p>

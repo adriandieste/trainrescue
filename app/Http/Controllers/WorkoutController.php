@@ -132,7 +132,6 @@ class WorkoutController extends Controller
                 ]);
             }
 
-            // Copy group assignments to the duplicate
             if ($workout->target_scope === 'grupo' && $workout->assignedUsers->isNotEmpty()) {
                 $copy->assignedUsers()->sync($workout->assignedUsers->pluck('id')->all());
             }
@@ -143,6 +142,24 @@ class WorkoutController extends Controller
         return redirect()
             ->route('exercises.library', ['edit_workout_id' => $duplicatedWorkout->id])
             ->with('success', 'Entrenamiento duplicado correctamente. Ya puedes ajustar la copia.');
+    }
+    public function reschedule(Request $request, Workout $workout): \Illuminate\Http\JsonResponse
+    {
+        Gate::authorize('update', $workout);
+
+        $request->validate([
+            'workout_date' => ['required', 'date_format:Y-m-d'],
+        ]);
+
+        $workout->update(['workout_date' => $request->input('workout_date')]);
+
+        return response()->json([
+            'message' => 'Entrenamiento reprogramado con éxito',
+            'workout' => [
+                'id' => $workout->id,
+                'workout_date' => $workout->workout_date?->format('Y-m-d'),
+            ],
+        ], 200);
     }
 
     public function destroy(Request $request, Workout $workout): RedirectResponse

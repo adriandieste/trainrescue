@@ -33,6 +33,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/workouts/{workout}', [WorkoutController::class, 'update'])->name('workouts.update');
         Route::delete('/workouts/{workout}', [WorkoutController::class, 'destroy'])->name('workouts.destroy');
         Route::post('/workouts/{workout}/duplicate', [WorkoutController::class, 'duplicate'])->name('workouts.duplicate');
+        Route::patch('/workouts/{workout}/reschedule', [WorkoutController::class, 'reschedule'])->name('workouts.reschedule');
         Route::get('/clubs/create', [ClubController::class, 'crear'])->name('clubs.create');
         Route::post('/clubs', [ClubController::class, 'guardar'])->name('clubs.store');
         Route::get('/clubs/{club}/edit', [ClubController::class, 'editar'])->name('clubs.edit');
@@ -74,7 +75,6 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // [TRA-399] Onboarding: persistir el rol elegido en el modal post-login
     Route::post('/onboarding/update-rol', [OnboardingController::class, 'updateRole'])->name('onboarding.update-rol');
 });
 
