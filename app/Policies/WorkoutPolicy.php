@@ -9,6 +9,14 @@ class WorkoutPolicy
 {
     public function duplicate(User $user, Workout $workout): bool
     {
+        if ($user->rol !== 'entrenador') {
+            return false;
+        }
+
+        if ($workout->is_template) {
+            return $workout->creator_user_id === $user->id || (bool) ($workout->is_public ?? false);
+        }
+
         return $this->update($user, $workout);
     }
 
@@ -16,6 +24,10 @@ class WorkoutPolicy
     {
         if ($user->rol !== 'entrenador') {
             return false;
+        }
+
+        if ($workout->is_template) {
+            return $workout->creator_user_id === $user->id;
         }
 
         if ($workout->creator_user_id === $user->id) {
@@ -27,6 +39,11 @@ class WorkoutPolicy
         }
 
         return $user->club?->admin_user_id === $user->id;
+    }
+
+    public function delete(User $user, Workout $workout): bool
+    {
+        return $this->update($user, $workout);
     }
 }
 

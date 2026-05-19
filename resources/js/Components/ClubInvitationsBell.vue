@@ -88,7 +88,7 @@ function markAllAsRead() {
                                 <div>
                                     <p class="text-xs font-semibold text-gray-900">{{ notif.workout_title }}</p>
                                     <p class="mt-0.5 text-[11px] text-gray-500">
-                                        <span v-if="notif.workout_date_formatted">📅 {{ notif.workout_date_formatted }} · </span>
+                                        <span v-if="notif.workout_date_formatted"> {{ notif.workout_date_formatted }} · </span>
                                         {{ notif.created_at }}
                                     </p>
                                 </div>

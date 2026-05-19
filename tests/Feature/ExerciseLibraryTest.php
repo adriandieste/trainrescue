@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\PredefinedExercise;
 use App\Models\User;
+use App\Models\Workout;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -146,6 +147,64 @@ class ExerciseLibraryTest extends TestCase
         $response
             ->assertOk()
             ->assertDontSee('Privado A');
+    }
+
+    public function test_library_shows_public_templates_in_global_section_for_other_trainers(): void
+    {
+        $owner = User::factory()->create(['rol' => 'entrenador']);
+        $viewer = User::factory()->create(['rol' => 'entrenador']);
+
+        Workout::create([
+            'creator_user_id' => $owner->id,
+            'club_id' => null,
+            'title' => 'Plantilla publica de comunidad',
+            'workout_date' => null,
+            'target_scope' => 'personal',
+            'is_template' => true,
+            'is_public' => true,
+        ]);
+
+        $response = $this
+            ->actingAs($viewer)
+            ->get(route('exercises.library'));
+
+        $response->assertOk();
+
+        $props = $response->original?->getData()['page']['props'] ?? [];
+        $globalTitles = collect($props['plantillasGlobales'] ?? [])->pluck('title')->all();
+        $ownTitles = collect($props['plantillas'] ?? [])->pluck('title')->all();
+
+        $this->assertContains('Plantilla publica de comunidad', $globalTitles);
+        $this->assertNotContains('Plantilla publica de comunidad', $ownTitles);
+    }
+
+    public function test_private_templates_are_not_visible_to_other_trainers(): void
+    {
+        $owner = User::factory()->create(['rol' => 'entrenador']);
+        $viewer = User::factory()->create(['rol' => 'entrenador']);
+
+        Workout::create([
+            'creator_user_id' => $owner->id,
+            'club_id' => null,
+            'title' => 'Plantilla privada del owner',
+            'workout_date' => null,
+            'target_scope' => 'personal',
+            'is_template' => true,
+            'is_public' => false,
+        ]);
+
+        $response = $this
+            ->actingAs($viewer)
+            ->get(route('exercises.library'));
+
+        $response->assertOk();
+
+        $props = $response->original?->getData()['page']['props'] ?? [];
+        $globalTitles = collect($props['plantillasGlobales'] ?? [])->pluck('title')->all();
+        $ownTitles = collect($props['plantillas'] ?? [])->pluck('title')->all();
+
+        $this->assertNotContains('Plantilla privada del owner', $globalTitles);
+        $this->assertNotContains('Plantilla privada del owner', $ownTitles);
     }
 
     public function test_trainer_can_update_own_custom_exercise(): void

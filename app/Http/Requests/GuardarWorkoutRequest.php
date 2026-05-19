@@ -27,6 +27,7 @@ class GuardarWorkoutRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'is_template' => ['required', 'boolean'],
+            'is_public' => ['required', 'boolean'],
             'workout_date' => [
                 'nullable',
                 'date',
@@ -80,6 +81,9 @@ class GuardarWorkoutRequest extends FormRequest
     {
         if (! $this->has('is_template')) {
             $this->merge(['is_template' => false]);
+        }
+        if (! $this->has('is_public')) {
+            $this->merge(['is_public' => false]);
         }
         if (! $this->has('assigned_user_ids')) {
             $this->merge(['assigned_user_ids' => []]);

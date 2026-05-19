@@ -76,6 +76,7 @@ class ExerciseLibraryController extends Controller
 
         $workouts = collect();
         $templates = collect();
+        $globalTemplates = collect();
         $calendarEvents = collect();
         $editWorkoutId = null;
 
@@ -110,6 +111,9 @@ class ExerciseLibraryController extends Controller
 
         if (Schema::hasTable('workouts') && Schema::hasTable('workout_exercises')) {
             $supportsAssignments = Schema::hasTable('workout_assignments');
+            $supportsTemplates = Schema::hasColumn('workouts', 'is_template');
+            $supportsTemplateVisibility = Schema::hasColumn('workouts', 'is_public');
+
             $baseQuery = Workout::query()
                 ->with([
                     'exercises.predefinedExercise',
@@ -124,8 +128,6 @@ class ExerciseLibraryController extends Controller
                     }
                 });
 
-            $supportsTemplates = Schema::hasColumn('workouts', 'is_template');
-
             $workouts = (clone $baseQuery)
                 ->when($supportsTemplates, fn ($query) => $query->where('is_template', false))
                 ->orderBy('workout_date')
@@ -136,14 +138,33 @@ class ExerciseLibraryController extends Controller
                 ->values();
 
             if ($supportsTemplates) {
-                $templates = (clone $baseQuery)
+                $templateBaseQuery = Workout::query()
+                    ->with([
+                        'creator',
+                        'exercises.predefinedExercise',
+                        'exercises.customExercise',
+                        ...($supportsAssignments ? ['assignedUsers'] : []),
+                    ])
+                    ->where('is_template', true);
+
+                $templates = (clone $templateBaseQuery)
                     ->where('creator_user_id', $request->user()->id)
-                    ->where('is_template', true)
                     ->orderByDesc('updated_at')
                     ->limit(20)
                     ->get()
                     ->map(fn (Workout $workout) => $this->mapWorkoutForBuilder($workout, $request))
                     ->values();
+
+                if ($supportsTemplateVisibility) {
+                    $globalTemplates = (clone $templateBaseQuery)
+                        ->where('is_public', true)
+                        ->where('creator_user_id', '!=', $request->user()->id)
+                        ->orderByDesc('updated_at')
+                        ->limit(20)
+                        ->get()
+                        ->map(fn (Workout $workout) => $this->mapWorkoutForBuilder($workout, $request))
+                        ->values();
+                }
             }
 
             $calendarEvents = (clone $baseQuery)
@@ -197,6 +218,7 @@ class ExerciseLibraryController extends Controller
             'categories'      => $categories,
             'entrenamientos'  => $workouts,
             'plantillas'      => $templates,
+            'plantillasGlobales' => $globalTemplates,
             'calendarEvents'  => $calendarEvents,
             'hasClub'         => (bool) $request->user()->club_id,
             'clubMembers'     => $clubMembers,
@@ -382,6 +404,8 @@ class ExerciseLibraryController extends Controller
             'workout_date'    => $workout->workout_date?->format('Y-m-d'),
             'target_scope'    => $workout->target_scope,
             'is_template'     => (bool) $workout->is_template,
+            'is_public'       => (bool) ($workout->is_public ?? false),
+            'creator_name'    => $workout->relationLoaded('creator') ? $workout->creator?->name : null,
             'can_edit'        => Gate::forUser($request->user())->allows('update', $workout),
             'assigned_user_ids' => $workout->relationLoaded('assignedUsers')
                 ? $workout->assignedUsers->pluck('id')->values()->all()
