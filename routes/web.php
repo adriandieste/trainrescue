@@ -31,6 +31,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/exercises/custom/{customExercise}', [ExerciseLibraryController::class, 'destroyCustom'])->name('exercises.custom.destroy');
         Route::post('/workouts', [WorkoutController::class, 'store'])->name('workouts.store');
         Route::patch('/workouts/{workout}', [WorkoutController::class, 'update'])->name('workouts.update');
+        Route::delete('/workouts/{workout}', [WorkoutController::class, 'destroy'])->name('workouts.destroy');
         Route::post('/workouts/{workout}/duplicate', [WorkoutController::class, 'duplicate'])->name('workouts.duplicate');
         Route::patch('/workouts/{workout}/reschedule', [WorkoutController::class, 'reschedule'])->name('workouts.reschedule');
         Route::get('/clubs/create', [ClubController::class, 'crear'])->name('clubs.create');

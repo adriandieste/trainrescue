@@ -209,6 +209,130 @@ class WorkoutBuilderTest extends TestCase
             ->assertSessionHasErrors(['workout_date']);
     }
 
+    public function test_template_visibility_defaults_to_private_when_not_sent(): void
+    {
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+
+        $predefined = PredefinedExercise::create([
+            'name' => 'Plantilla privada por defecto',
+            'category' => 'tecnica',
+            'technical_description' => 'Base tecnica.',
+            'materials' => ['tabla'],
+            'is_active' => true,
+        ]);
+
+        $this
+            ->actingAs($trainer)
+            ->post(route('workouts.store'), [
+                'title' => 'Plantilla sin visibilidad explicita',
+                'is_template' => true,
+                'target_scope' => 'personal',
+                'exercises' => [[
+                    'source' => 'predefined',
+                    'exercise_id' => $predefined->id,
+                    'sets' => 3,
+                    'meters' => null,
+                    'rest_seconds' => 30,
+                ]],
+            ])
+            ->assertRedirect(route('exercises.library'));
+
+        $this->assertDatabaseHas('workouts', [
+            'creator_user_id' => $trainer->id,
+            'title' => 'Plantilla sin visibilidad explicita',
+            'is_template' => true,
+            'is_public' => false,
+        ]);
+    }
+
+    public function test_other_trainer_can_duplicate_public_template_but_cannot_update_it(): void
+    {
+        $owner = User::factory()->create(['rol' => 'entrenador']);
+        $intruder = User::factory()->create(['rol' => 'entrenador']);
+
+        $predefined = PredefinedExercise::create([
+            'name' => 'Plantilla comunitaria',
+            'category' => 'resistencia',
+            'technical_description' => 'Compartida para entrenadores.',
+            'materials' => ['aletas'],
+            'is_active' => true,
+        ]);
+
+        $template = Workout::create([
+            'creator_user_id' => $owner->id,
+            'club_id' => null,
+            'title' => 'Plantilla publica editable solo por autor',
+            'workout_date' => null,
+            'target_scope' => 'personal',
+            'is_template' => true,
+            'is_public' => true,
+        ]);
+
+        $template->exercises()->create([
+            'predefined_exercise_id' => $predefined->id,
+            'sort_order' => 0,
+            'sets' => 3,
+            'reps' => null,
+            'meters' => 50,
+            'rest_seconds' => 40,
+        ]);
+
+        $this
+            ->actingAs($intruder)
+            ->post(route('workouts.duplicate', $template))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('workouts', [
+            'creator_user_id' => $intruder->id,
+            'title' => 'Plantilla publica editable solo por autor',
+            'is_template' => true,
+            'is_public' => false,
+        ]);
+
+        $this
+            ->actingAs($intruder)
+            ->patch(route('workouts.update', $template), [
+                'title' => 'Intento edicion no autorizado',
+                'is_template' => true,
+                'is_public' => true,
+                'target_scope' => 'personal',
+                'exercises' => [[
+                    'source' => 'predefined',
+                    'exercise_id' => $predefined->id,
+                    'sets' => 4,
+                    'meters' => 75,
+                    'rest_seconds' => 30,
+                ]],
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_other_trainer_cannot_delete_public_template_they_do_not_own(): void
+    {
+        $owner = User::factory()->create(['rol' => 'entrenador']);
+        $intruder = User::factory()->create(['rol' => 'entrenador']);
+
+        $template = Workout::create([
+            'creator_user_id' => $owner->id,
+            'club_id' => null,
+            'title' => 'Plantilla publica protegida',
+            'workout_date' => null,
+            'target_scope' => 'personal',
+            'is_template' => true,
+            'is_public' => true,
+        ]);
+
+        $this
+            ->actingAs($intruder)
+            ->delete(route('workouts.destroy', $template))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('workouts', [
+            'id' => $template->id,
+            'title' => 'Plantilla publica protegida',
+        ]);
+    }
+
     public function test_trainer_cannot_create_club_workout_without_club(): void
     {
         $trainer = User::factory()->create(['rol' => 'entrenador', 'club_id' => null]);

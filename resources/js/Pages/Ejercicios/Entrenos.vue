@@ -20,6 +20,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    plantillasGlobales: {
+        type: Array,
+        default: () => [],
+    },
     calendarEvents: {
         type: Array,
         default: () => [],
@@ -47,6 +51,7 @@ const flash = computed(() => page.props.flash ?? {});
 const hasClub = computed(() => props.hasClub);
 const entrenamientos = computed(() => props.entrenamientos ?? []);
 const plantillas = computed(() => props.plantillas ?? []);
+const plantillasGlobales = computed(() => props.plantillasGlobales ?? []);
 const calendarEvents = computed(() => props.calendarEvents ?? []);
 
 const calendarView = ref('month');
@@ -250,6 +255,7 @@ const entrenamientoForm = useForm({
     workout_date: '',
     target_scope: hasClub.value ? 'club' : 'personal',
     is_template: false,
+    is_public: false,
     assigned_user_ids: [],
     exercises: [],
 });
@@ -317,10 +323,11 @@ function sourceLabel(source) {
 }
 
 function resetTrainingForm() {
-    entrenamientoForm.reset('title', 'workout_date', 'target_scope', 'is_template', 'assigned_user_ids', 'exercises');
+    entrenamientoForm.reset('title', 'workout_date', 'target_scope', 'is_template', 'is_public', 'assigned_user_ids', 'exercises');
     entrenamientoForm.clearErrors();
     entrenamientoForm.target_scope = hasClub.value ? 'club' : 'personal';
     entrenamientoForm.is_template = false;
+    entrenamientoForm.is_public = false;
     entrenamientoForm.assigned_user_ids = [];
     editingTrainingId.value = null;
     pendingRemoveIndex.value = null;
@@ -348,6 +355,7 @@ function openTrainingEditor(entrenamiento) {
     entrenamientoForm.workout_date = entrenamiento.workout_date ?? '';
     entrenamientoForm.target_scope = entrenamiento.target_scope ?? (hasClub.value ? 'club' : 'personal');
     entrenamientoForm.is_template = Boolean(entrenamiento.is_template);
+    entrenamientoForm.is_public = Boolean(entrenamiento.is_public);
     entrenamientoForm.assigned_user_ids = entrenamiento.assigned_user_ids ?? [];
     entrenamientoForm.exercises = (entrenamiento.exercises ?? []).map((item) => ({
         source: item.source,
@@ -422,6 +430,7 @@ function useTemplate(template) {
         ? (hasClub.value ? 'club' : 'personal')
         : (template.target_scope ?? (hasClub.value ? 'club' : 'personal'));
     entrenamientoForm.is_template = false;
+    entrenamientoForm.is_public = false;
     entrenamientoForm.assigned_user_ids = [];
     entrenamientoForm.exercises = (template.exercises ?? []).map((item) => ({
         source: item.source,
@@ -504,6 +513,7 @@ function submitTraining() {
     const request = entrenamientoForm.transform((data) => ({
         ...data,
         is_template: Boolean(data.is_template),
+        is_public: data.is_template ? Boolean(data.is_public) : false,
         workout_date: data.is_template ? null : data.workout_date,
         assigned_user_ids: data.target_scope === 'grupo' ? data.assigned_user_ids : [],
         exercises: data.exercises.map((item) => ({
@@ -535,7 +545,10 @@ function submitTraining() {
 watch(() => entrenamientoForm.is_template, (isTemplate) => {
     if (isTemplate) {
         entrenamientoForm.workout_date = '';
+        return;
     }
+
+    entrenamientoForm.is_public = false;
 });
 
 watch(() => entrenamientoForm.target_scope, (scope) => {
@@ -848,18 +861,35 @@ function formatCategory(category) {
                         </div>
                     </div>
 
-                    <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
-                        <label class="inline-flex items-start gap-2 text-sm text-indigo-900">
-                            <input
-                                v-model="entrenamientoForm.is_template"
-                                type="checkbox"
-                                class="mt-0.5 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
-                            >
-                            <span>
-                                <span class="font-semibold">Guardar como plantilla</span>
-                                <span class="mt-0.5 block text-xs text-indigo-700">Se guarda en "Mis Plantillas" para reutilizarla en futuras sesiones.</span>
-                            </span>
-                        </label>
+                    <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+                        <div class="flex items-center gap-4">
+                            <label class="inline-flex items-center gap-2 cursor-pointer">
+                                <input
+                                    v-model="entrenamientoForm.is_template"
+                                    type="checkbox"
+                                    class="rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
+                                >
+                                <span class="text-sm font-semibold text-indigo-900">Guardar como plantilla</span>
+                            </label>
+
+                            <div class="h-6 w-px bg-indigo-200"></div>
+
+                            <label class="inline-flex items-center gap-3" :class="{'opacity-50 pointer-events-none': !entrenamientoForm.is_template}">
+                                <span class="text-xs font-semibold uppercase text-indigo-700">Visibilidad:</span>
+                                <input
+                                    v-model="entrenamientoForm.is_public"
+                                    type="checkbox"
+                                    class="sr-only peer"
+                                    :disabled="!entrenamientoForm.is_template"
+                                >
+                                <span class="h-5 w-9 rounded-full bg-slate-300 transition peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full relative"></span>
+                                <span class="text-xs font-medium text-indigo-800">{{ entrenamientoForm.is_public ? 'Pública' : 'Privada' }}</span>
+                            </label>
+                        </div>
+
+                        <p class="mt-2 text-xs text-indigo-600 ml-7">
+                            {{ entrenamientoForm.is_template ? 'Configuración de plantilla activa.' : 'Marca "Guardar como plantilla" para gestionar su visibilidad.' }}
+                        </p>
                     </div>
 
                     <div class="max-w-sm">
@@ -1354,6 +1384,9 @@ function formatCategory(category) {
                                     <div>
                                         <p class="font-semibold text-indigo-900">{{ plantilla.title }}</p>
                                         <p class="text-indigo-700">{{ plantilla.exercises.length }} {{ plantilla.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }} · {{ plantilla.target_scope === 'club' ? 'Club' : plantilla.target_scope === 'grupo' ? 'Grupo' : 'Personal' }}</p>
+                                        <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wide" :class="plantilla.is_public ? 'text-emerald-700' : 'text-slate-600'">
+                                            {{ plantilla.is_public ? 'Publica' : 'Privada' }}
+                                        </p>
                                     </div>
                                     <div class="flex items-center gap-1">
                                         <button
@@ -1370,6 +1403,43 @@ function formatCategory(category) {
                                             @click="openTrainingEditor(plantilla)"
                                         >
                                             Editar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="plantillasGlobales.length > 0" class="border-t border-gray-200 p-4">
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-600">Plantillas Comunidad</h3>
+                        <div class="mt-2 space-y-2">
+                            <div
+                                v-for="plantilla in plantillasGlobales"
+                                :key="`tpl-global-${plantilla.id}`"
+                                class="rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-xs"
+                            >
+                                <div class="flex items-start justify-between gap-2">
+                                    <div>
+                                        <p class="font-semibold text-emerald-900">{{ plantilla.title }}</p>
+                                        <p class="text-emerald-700">{{ plantilla.exercises.length }} {{ plantilla.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }} · {{ plantilla.target_scope === 'club' ? 'Club' : plantilla.target_scope === 'grupo' ? 'Grupo' : 'Personal' }}</p>
+                                        <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                                            Por {{ plantilla.creator_name ?? 'Entrenador' }}
+                                        </p>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            class="rounded-md border border-emerald-300 bg-white px-2 py-1 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                                            @click="useTemplate(plantilla)"
+                                        >
+                                            Usar
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="rounded-md border border-emerald-300 bg-white px-2 py-1 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                                            @click="duplicateTraining(plantilla)"
+                                        >
+                                            Clonar
                                         </button>
                                     </div>
                                 </div>

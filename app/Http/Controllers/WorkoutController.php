@@ -33,6 +33,7 @@ class WorkoutController extends Controller
                 'workout_date' => $validated['is_template'] ? null : $validated['workout_date'],
                 'target_scope' => $validated['target_scope'],
                 'is_template'  => (bool) $validated['is_template'],
+                'is_public'    => (bool) ($validated['is_template'] ? $validated['is_public'] : false),
             ]);
 
             $this->syncWorkoutExercises($workout, $validated['exercises'], $trainer->id);
@@ -71,6 +72,7 @@ class WorkoutController extends Controller
                 'workout_date' => $validated['is_template'] ? null : $validated['workout_date'],
                 'target_scope' => $validated['target_scope'],
                 'is_template'  => (bool) $validated['is_template'],
+                'is_public'    => (bool) ($validated['is_template'] ? $validated['is_public'] : false),
             ]);
 
             $workout->exercises()->delete();
@@ -114,6 +116,7 @@ class WorkoutController extends Controller
                 'workout_date' => $workout->workout_date,
                 'target_scope' => $workout->target_scope,
                 'is_template'  => (bool) $workout->is_template,
+                'is_public'    => false,
             ]);
 
             foreach ($workout->exercises as $line) {
@@ -158,6 +161,19 @@ class WorkoutController extends Controller
             ],
         ], 200);
     }
+
+    public function destroy(Request $request, Workout $workout): RedirectResponse
+    {
+        Gate::authorize('delete', $workout);
+
+        $workout->delete();
+
+        return redirect()
+            ->route('exercises.library')
+            ->with('success', 'Entrenamiento eliminado correctamente.');
+    }
+
+    // ─── Private helpers ─────────────────────────────────────────────────────
 
     private function buildSuccessMessage(Workout $workout, array $validated, string $action): string
     {
