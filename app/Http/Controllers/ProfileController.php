@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Support\PersonalBestViewData;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,6 +35,9 @@ class ProfileController extends Controller
                 'avatar' => $user->avatar,
                 'club'   => $user->club?->name,
             ],
+            'personalBestTests' => $canonicalRole === 'socorrista'
+                ? PersonalBestViewData::forUser($user, $user)
+                : [],
         ]);
     }
 

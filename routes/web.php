@@ -7,6 +7,7 @@ use App\Http\Controllers\ClubController;
 use App\Http\Controllers\ClubInvitationController;
 use App\Http\Controllers\ExerciseLibraryController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PersonalBestController;
 use App\Http\Controllers\WorkoutController;
 use Illuminate\Support\Facades\Route;
 
@@ -74,6 +75,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/profile/personal-bests', [PersonalBestController::class, 'index'])->name('profile.personal-bests.index');
+    Route::patch('/profile/personal-bests/{performanceTest}', [PersonalBestController::class, 'update'])->name('profile.personal-bests.update');
+    Route::get('/users/{user}/personal-bests', [PersonalBestController::class, 'index'])->name('users.personal-bests.index');
 
     Route::post('/onboarding/update-rol', [OnboardingController::class, 'updateRole'])->name('onboarding.update-rol');
 });
