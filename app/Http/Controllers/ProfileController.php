@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Support\ClubTimeViewData;
 use App\Support\PersonalBestViewData;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -38,6 +39,9 @@ class ProfileController extends Controller
             'personalBestTests' => $canonicalRole === 'socorrista'
                 ? PersonalBestViewData::forUser($user, $user)
                 : [],
+            'clubTimePanel' => $canonicalRole === 'entrenador' && $user->club
+                ? ClubTimeViewData::forClub($user->club)
+                : null,
         ]);
     }
 

@@ -15,7 +15,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Notifications\VerifyEmailNotification;
 
-#[Fillable(['name', 'email', 'password', 'rol', 'club_id', 'avatar', 'google_id', 'google_avatar', 'email_verified_at'])]
+#[Fillable(['name', 'email', 'password', 'rol', 'age_category', 'club_id', 'avatar', 'google_id', 'google_avatar', 'email_verified_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
