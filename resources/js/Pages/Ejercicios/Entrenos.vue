@@ -2,6 +2,9 @@
 import GeneralLayout from '@/Layouts/GeneralLayout.vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
+import ExerciseForm from './Partials/ExerciseForm.vue';
+import ExerciseCard from './Partials/ExerciseCard.vue';
+import ExerciseDetailPanel from './Partials/ExerciseDetailPanel.vue';
 
 const props = defineProps({
     exercises: {
@@ -205,6 +208,13 @@ function goToToday() {
     calendarCursor.value = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 }
 
+const activeTab = ref('entrenos');
+const entrenosSearch = ref('');
+const entrenosScopeFilter = ref('all');
+const plantillasSearch = ref('');
+const plantillasVisibilityFilter = ref('all');
+const plantillasOwnerFilter = ref('all');
+
 const search = ref('');
 const selectedCategory = ref('all');
 const selectedExerciseId = ref(props.exercises[0]?.id ?? null);
@@ -248,6 +258,62 @@ watch(filteredExercises, (items) => {
 
 const selectedExercise = computed(() =>
     filteredExercises.value.find((item) => item.id === selectedExerciseId.value) ?? null
+);
+
+const filteredEntrenamientos = computed(() => {
+    const term = entrenosSearch.value.trim().toLowerCase();
+
+    return entrenamientos.value.filter((entrenamiento) => {
+        const matchesTerm = !term || String(entrenamiento.title ?? '').toLowerCase().includes(term);
+        if (!matchesTerm) {
+            return false;
+        }
+
+        if (entrenosScopeFilter.value === 'all') {
+            return true;
+        }
+
+        return entrenamiento.target_scope === entrenosScopeFilter.value;
+    });
+});
+
+const filteredPlantillas = computed(() => {
+    const term = plantillasSearch.value.trim().toLowerCase();
+    const own = (plantillas.value ?? []).map((item) => ({ ...item, owner_type: 'mine' }));
+    const community = (plantillasGlobales.value ?? []).map((item) => ({ ...item, owner_type: 'community' }));
+
+    return [...own, ...community].filter((plantilla) => {
+        const matchesTerm = !term || String(plantilla.title ?? '').toLowerCase().includes(term);
+        if (!matchesTerm) {
+            return false;
+        }
+
+        if (plantillasVisibilityFilter.value === 'public' && !plantilla.is_public) {
+            return false;
+        }
+
+        if (plantillasVisibilityFilter.value === 'private' && plantilla.is_public) {
+            return false;
+        }
+
+        if (plantillasOwnerFilter.value === 'mine' && plantilla.owner_type !== 'mine') {
+            return false;
+        }
+
+        if (plantillasOwnerFilter.value === 'community' && plantilla.owner_type !== 'community') {
+            return false;
+        }
+
+        return true;
+    });
+});
+
+const filteredPlantillasPropias = computed(() =>
+    filteredPlantillas.value.filter((item) => item.owner_type === 'mine')
+);
+
+const filteredPlantillasComunidad = computed(() =>
+    filteredPlantillas.value.filter((item) => item.owner_type === 'community')
 );
 
 const entrenamientoForm = useForm({
@@ -348,6 +414,7 @@ function toggleTrainingForm() {
 }
 
 function openTrainingEditor(entrenamiento) {
+    activeTab.value = 'entrenos';
     showCreateTrainingForm.value = true;
     editingTrainingId.value = entrenamiento.id;
     entrenamientoForm.clearErrors();
@@ -421,6 +488,7 @@ function addExerciseToTraining(exercise) {
 }
 
 function useTemplate(template) {
+    activeTab.value = 'entrenos';
     showCreateTrainingForm.value = true;
     editingTrainingId.value = null;
     entrenamientoForm.clearErrors();
@@ -774,8 +842,31 @@ function deleteExercise() {
     });
 }
 
+function switchTab(tab) {
+    activeTab.value = tab;
+}
+
+function openTemplateBuilder() {
+    activeTab.value = 'entrenos';
+    showCreateTrainingForm.value = true;
+    entrenamientoForm.is_template = true;
+    scrollToTrainingBuilder();
+}
+
 function formatCategory(category) {
     return category.charAt(0).toUpperCase() + category.slice(1);
+}
+
+function formatTargetScope(scope) {
+    if (scope === 'club') {
+        return 'Todo el club';
+    }
+
+    if (scope === 'grupo') {
+        return 'Grupo';
+    }
+
+    return 'Personal';
 }
 </script>
 
@@ -808,7 +899,36 @@ function formatCategory(category) {
                 {{ groupNoticeMessage }}
             </div>
 
-            <div ref="trainingBuilderSectionRef" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+            <div class="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
+                <div class="grid gap-2 sm:grid-cols-3">
+                    <button
+                        type="button"
+                        class="rounded-lg px-4 py-2 text-sm font-semibold transition"
+                        :class="activeTab === 'entrenos' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                        @click="switchTab('entrenos')"
+                    >
+                        Entrenos
+                    </button>
+                    <button
+                        type="button"
+                        class="rounded-lg px-4 py-2 text-sm font-semibold transition"
+                        :class="activeTab === 'ejercicios' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                        @click="switchTab('ejercicios')"
+                    >
+                        Ejercicios
+                    </button>
+                    <button
+                        type="button"
+                        class="rounded-lg px-4 py-2 text-sm font-semibold transition"
+                        :class="activeTab === 'plantillas' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                        @click="switchTab('plantillas')"
+                    >
+                        Plantillas
+                    </button>
+                </div>
+            </div>
+
+            <div v-show="activeTab === 'entrenos' && showCreateTrainingForm" ref="trainingBuilderSectionRef" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                 <div class="border-b border-gray-200 p-6">
                     <div class="flex items-start justify-between gap-4">
                         <div>
@@ -830,7 +950,7 @@ function formatCategory(category) {
                     </div>
                 </div>
 
-                <form v-if="showCreateTrainingForm" class="space-y-4 p-6" @submit.prevent="submitTraining">
+                <form class="space-y-4 p-6" @submit.prevent="submitTraining">
                     <div class="grid gap-4 md:grid-cols-3">
                         <div class="md:col-span-2">
                             <label class="mb-1 block text-sm font-medium text-gray-700">Titulo del entrenamiento *</label>
@@ -989,7 +1109,7 @@ function formatCategory(category) {
                         </div>
 
                         <div v-if="entrenamientoForm.exercises.length === 0" class="rounded-lg border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-500">
-                            Agrega ejercicios desde la biblioteca lateral para construir el entrenamiento.
+                            Agrega ejercicios desde el aprartado de ejercicios para construir el entrenamiento.
                         </div>
 
                         <div v-else class="space-y-3">
@@ -1110,288 +1230,337 @@ function formatCategory(category) {
                 </form>
             </div>
 
-            <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+            <div v-show="activeTab === 'entrenos'" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                 <div class="border-b border-gray-200 p-6">
-                    <div class="flex items-start justify-between gap-4">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div>
-                            <h2 class="text-lg font-semibold text-gray-900">Crear ejercicio personalizado</h2>
-                            <p class="mt-1 text-sm text-gray-600">Amplia tu biblioteca privada con ejercicios adaptados a tu metodologia.</p>
+                            <h2 class="text-lg font-semibold text-gray-900">Entrenos guardados</h2>
+                            <p class="mt-1 text-sm text-gray-600">Busca por titulo y filtra por destinatario para gestionar sesiones rapidamente.</p>
                         </div>
                         <button
                             type="button"
-                            class="inline-flex shrink-0 items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
-                            @click="showCreateForm = !showCreateForm"
+                            class="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-900"
+                            @click="toggleTrainingForm"
                         >
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                            </svg>
-                            {{ showCreateForm ? 'Ocultar' : 'Crear' }}
+                            {{ showCreateTrainingForm ? 'Ocultar' : 'Crear' }}
                         </button>
+                        <div class="grid w-full gap-3 sm:grid-cols-2 lg:max-w-2xl">
+                            <div>
+                                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Buscar</label>
+                                <input
+                                    v-model="entrenosSearch"
+                                    type="text"
+                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-400"
+                                    placeholder="Ej: Resistencia, Potencia..."
+                                >
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Destinatario</label>
+                                <select
+                                    v-model="entrenosScopeFilter"
+                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-400"
+                                >
+                                    <option value="all">Todos</option>
+                                    <option value="club">Todo el club</option>
+                                    <option value="grupo">Grupo</option>
+                                    <option value="personal">Personal</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <form v-if="showCreateForm" class="grid gap-4 p-6 md:grid-cols-2" @submit.prevent="submitCustomExercise">
-                    <div>
-                        <label class="mb-1 block text-sm font-medium text-gray-700">Nombre *</label>
-                        <input
-                            v-model="form.name"
-                            type="text"
-                            class="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2"
-                            :class="(form.errors.name || realtimeErrors.name) ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'"
-                            placeholder="Ej: Circuito apnea + rescate"
+                <div class="p-6">
+                    <div v-if="filteredEntrenamientos.length === 0" class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-sm text-gray-600">
+                        No hay entrenos que coincidan con los filtros actuales.
+                    </div>
+
+                    <div v-else class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        <article
+                            v-for="entrenamiento in filteredEntrenamientos"
+                            :key="`training-tab-${entrenamiento.id}`"
+                            class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
                         >
-                        <p v-if="form.errors.name || realtimeErrors.name" class="mt-1 text-xs text-red-600">
-                            {{ form.errors.name || realtimeErrors.name }}
-                        </p>
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <h3 class="truncate text-sm font-semibold text-gray-900">{{ entrenamiento.title }}</h3>
+                                    <p class="mt-1 text-xs text-gray-500">{{ entrenamiento.workout_date || 'Sin fecha' }} · {{ formatTargetScope(entrenamiento.target_scope) }}</p>
+                                </div>
+                                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                                    {{ entrenamiento.exercises?.length ?? 0 }} ej.
+                                </span>
+                            </div>
+                            <div class="mt-3 flex items-center gap-2">
+                                <button
+                                    v-if="entrenamiento.can_edit"
+                                    type="button"
+                                    class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+                                    @click="openTrainingEditor(entrenamiento)"
+                                >
+                                    Editar
+                                </button>
+                                <button
+                                    type="button"
+                                    class="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                                    @click="duplicateTraining(entrenamiento)"
+                                >
+                                    Duplicar
+                                </button>
+                            </div>
+                        </article>
                     </div>
-
-                    <div>
-                        <label class="mb-1 block text-sm font-medium text-gray-700">Enlace de video (opcional)</label>
-                        <input
-                            v-model="form.video_url"
-                            type="url"
-                            class="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2"
-                            :class="(form.errors.video_url || realtimeErrors.video_url) ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'"
-                            placeholder="https://..."
-                        >
-                        <p v-if="form.errors.video_url || realtimeErrors.video_url" class="mt-1 text-xs text-red-600">
-                            {{ form.errors.video_url || realtimeErrors.video_url }}
-                        </p>
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="mb-1 block text-sm font-medium text-gray-700">Descripcion tecnica *</label>
-                        <textarea
-                            v-model="form.description"
-                            rows="4"
-                            class="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2"
-                            :class="(form.errors.description || realtimeErrors.description) ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'"
-                            placeholder="Describe el objetivo y la ejecucion tecnica del ejercicio"
-                        />
-                        <p v-if="form.errors.description || realtimeErrors.description" class="mt-1 text-xs text-red-600">
-                            {{ form.errors.description || realtimeErrors.description }}
-                        </p>
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="mb-1 block text-sm font-medium text-gray-700">Material necesario</label>
-                        <textarea
-                            v-model="form.materials"
-                            rows="2"
-                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                            placeholder="Separado por coma o salto de linea (ej: maniqui, aletas, tubo)"
-                        />
-                        <p v-if="form.errors.materials" class="mt-1 text-xs text-red-600">{{ form.errors.materials }}</p>
-                    </div>
-
-                    <div>
-                        <label class="mb-1 block text-sm font-medium text-gray-700">Series por defecto</label>
-                        <input
-                            v-model.number="form.default_sets"
-                            type="number"
-                            min="1"
-                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                        >
-                        <p v-if="form.errors.default_sets" class="mt-1 text-xs text-red-600">{{ form.errors.default_sets }}</p>
-                    </div>
-
-                    <div>
-                        <label class="mb-1 block text-sm font-medium text-gray-700">Metros por defecto</label>
-                        <input
-                            v-model.number="form.default_meters"
-                            type="number"
-                            min="1"
-                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                        >
-                        <p v-if="form.errors.default_meters" class="mt-1 text-xs text-red-600">{{ form.errors.default_meters }}</p>
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="mb-1 block text-sm font-medium text-gray-700">Descanso por defecto (s)</label>
-                        <input
-                            v-model.number="form.default_rest_seconds"
-                            type="number"
-                            min="0"
-                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                        >
-                        <p v-if="form.errors.default_rest_seconds" class="mt-1 text-xs text-red-600">{{ form.errors.default_rest_seconds }}</p>
-                    </div>
-
-                    <div class="md:col-span-2 flex justify-end">
-                        <button
-                            type="submit"
-                            :disabled="form.processing || hasRealtimeErrors"
-                            class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
-                        >
-                            <span v-if="form.processing">Guardando...</span>
-                            <span v-else>Guardar ejercicio personalizado</span>
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
 
-            <div class="grid gap-6 lg:grid-cols-3">
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg lg:col-span-1">
-                    <div class="border-b border-gray-200 p-4">
-                        <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">Origen</label>
-                        <div class="mb-4 flex gap-1.5">
-                            <button
-                                type="button"
-                                class="flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition"
-                                :class="selectedSource === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-                                @click="selectedSource = 'all'"
-                            >
-                                Todos
-                            </button>
-                            <button
-                                type="button"
-                                class="flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition"
-                                :class="selectedSource === 'predefined' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-                                @click="selectedSource = 'predefined'"
-                            >
-                                RFESS
-                            </button>
-                            <button
-                                type="button"
-                                class="flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition"
-                                :class="selectedSource === 'custom' ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-                                @click="selectedSource = 'custom'"
-                            >
-                                Mis ejercicios
-                            </button>
+            <!-- Formulario crear ejercicio -->
+            <ExerciseForm
+                :isOpen="showCreateForm"
+                :formData="form"
+                :formErrors="form.errors"
+                :isSubmitting="form.processing"
+                @update:isOpen="showCreateForm = $event"
+                @update:formData="Object.assign(form, $event)"
+                @submit="submitCustomExercise"
+            />
+
+            <!-- Seccion ejercicios guardados -->
+            <div v-show="activeTab === 'ejercicios'" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                <div class="border-b border-gray-200 p-6">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-900">Biblioteca de ejercicios</h2>
+                            <p class="mt-1 text-sm text-gray-600">Busca, filtra y gestiona tu catálogo de ejercicios para agregar a entrenamientos.</p>
                         </div>
-
-                        <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">Buscar</label>
-                        <input
-                            v-model="search"
-                            type="text"
-                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                            placeholder="Nombre, descripcion o material"
+                        <button
+                            type="button"
+                            class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                            @click="showCreateForm = !showCreateForm"
                         >
-
-                        <label class="mb-2 mt-4 block text-xs font-semibold uppercase tracking-wide text-gray-500">Categoria</label>
-                        <select
-                            v-model="selectedCategory"
-                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="all">Todas</option>
-                            <option v-for="category in categories" :key="category" :value="category">
-                                {{ formatCategory(category) }}
-                            </option>
-                        </select>
+                            {{ showCreateForm ? 'Ocultar' : 'Crear' }}
+                        </button>
                     </div>
 
-                    <div class="max-h-[560px] overflow-y-auto">
-                        <div
+                    <!-- Filtros toolbar -->
+                    <div class="mt-4 grid gap-3 md:grid-cols-4">
+                        <div>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Origen</label>
+                            <div class="flex gap-1">
+                                <button
+                                    type="button"
+                                    class="flex-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition"
+                                    :class="selectedSource === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                                    @click="selectedSource = 'all'"
+                                >
+                                    Todos
+                                </button>
+                                <button
+                                    type="button"
+                                    class="flex-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition"
+                                    :class="selectedSource === 'predefined' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                                    @click="selectedSource = 'predefined'"
+                                >
+                                    RFESS
+                                </button>
+                                <button
+                                    type="button"
+                                    class="flex-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition"
+                                    :class="selectedSource === 'custom' ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                                    @click="selectedSource = 'custom'"
+                                >
+                                    Míos
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Categoría</label>
+                            <select
+                                v-model="selectedCategory"
+                                class="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="all">Todas</option>
+                                <option v-for="category in categories" :key="category" :value="category">
+                                    {{ formatCategory(category) }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Buscar</label>
+                            <input
+                                v-model="search"
+                                type="text"
+                                class="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                placeholder="Nombre, descripción o material"
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid de ejercicios -->
+                <div class="p-6">
+                    <div v-if="filteredExercises.length === 0" class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-sm text-gray-600">
+                        No hay ejercicios que coincidan con los filtros actuales.
+                    </div>
+
+                    <div v-else class="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        <ExerciseCard
                             v-for="exercise in filteredExercises"
                             :key="exercise.id"
-                            class="w-full border-b border-gray-100 px-4 py-3 text-left transition hover:bg-gray-50"
-                            :class="[
-                                selectedExerciseId === exercise.id ? 'bg-blue-50' : '',
-                                exercise.source === 'custom' ? 'border-l-4 border-l-violet-400' : 'border-l-4 border-l-transparent',
-                            ]"
-                        >
-                            <div class="flex items-start justify-between gap-2">
-                                <button
-                                    type="button"
-                                    class="min-w-0 text-left"
-                                    @click="selectedExerciseId = exercise.id"
-                                >
-                                    <span class="block truncate text-sm font-semibold text-gray-900">{{ exercise.name }}</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    class="shrink-0 rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-100"
-                                    @click.stop="addExerciseToTraining(exercise)"
-                                >
-                                    Anadir
-                                </button>
-                            </div>
+                            :exercise="exercise"
+                            :isSelected="selectedExerciseId === exercise.id"
+                            @select="selectedExerciseId = exercise.id"
+                            @add-to-training="addExerciseToTraining(exercise)"
+                            @edit="selectedExerciseId = exercise.id; openEditForm()"
+                            @delete="selectedExerciseId = exercise.id; confirmDeleteExercise()"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel detalle ejercicio: modal solo en mobile -->
+            <Teleport v-if="selectedExercise && activeTab === 'ejercicios'" to="body">
+                <Transition
+                    enter-active-class="transition ease-out duration-200"
+                    enter-from-class="opacity-0"
+                    enter-to-class="opacity-100"
+                    leave-active-class="transition ease-in duration-150"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                >
+                    <!-- Overlay modal -->
+                    <div class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden" @click="selectedExerciseId = null" />
+                </Transition>
+
+                <Transition
+                    enter-active-class="transition ease-out duration-200"
+                    enter-from-class="translate-x-full"
+                    enter-to-class="translate-x-0"
+                    leave-active-class="transition ease-in duration-150"
+                    leave-from-class="translate-x-0"
+                    leave-to-class="translate-x-full"
+                >
+                    <div class="fixed right-0 top-0 z-50 h-screen max-h-screen w-full overflow-y-auto bg-white shadow-xl sm:max-w-2xl md:max-w-3xl lg:hidden">
+                        <div class="sticky top-0 z-40 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4 lg:hidden">
+                            <h2 class="text-lg font-semibold text-gray-900">{{ selectedExercise.name }}</h2>
                             <button
                                 type="button"
-                                class="mt-1 inline-flex items-center gap-2"
-                                @click="selectedExerciseId = exercise.id"
+                                class="text-gray-400 hover:text-gray-600"
+                                @click="selectedExerciseId = null"
                             >
-                                <span class="block text-xs text-gray-500">{{ formatCategory(exercise.category) }}</span>
-                                <span
-                                    class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                                    :class="exercise.source === 'custom' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'"
-                                >
-                                    {{ exercise.source === 'custom' ? 'Personalizado' : 'RFESS' }}
-                                </span>
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
                             </button>
                         </div>
 
-                        <div v-if="filteredExercises.length === 0" class="p-4 text-sm text-gray-500">
-                            No hay ejercicios que coincidan con los filtros actuales.
-                        </div>
-
-                        <div v-if="filteredExercises.length > 0" class="border-t border-gray-100 px-4 py-2 text-xs text-gray-400">
-                            {{ filteredExercises.length }} {{ filteredExercises.length === 1 ? 'ejercicio' : 'ejercicios' }} encontrado{{ filteredExercises.length === 1 ? '' : 's' }}
-                        </div>
-                    </div>
-
-                    <div v-if="entrenamientos.length > 0" class="border-t border-gray-200 p-4">
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Cronograma de entrenamientos</h3>
-                        <div class="mt-2 space-y-2">
-                            <div
-                                v-for="entrenamiento in entrenamientos"
-                                :key="entrenamiento.id"
-                                class="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs"
-                            >
-                                <div class="flex items-start justify-between gap-2">
-                                    <div>
-                                        <p class="font-semibold text-gray-800">{{ entrenamiento.title }}</p>
-                                        <p class="text-gray-500">
-                                            {{ entrenamiento.workout_date }} ·
-                                            <span v-if="entrenamiento.target_scope === 'club'">Todo el club</span>
-                                            <span v-else-if="entrenamiento.target_scope === 'grupo'" class="font-semibold text-purple-700">
-                                                Grupo · {{ entrenamiento.assigned_user_ids?.length ?? 0 }} {{ (entrenamiento.assigned_user_ids?.length ?? 0) === 1 ? 'atleta' : 'atletas' }}
-                                            </span>
-                                            <span v-else>Personal</span>
-                                        </p>
-                                    </div>
-                                    <div v-if="entrenamiento.can_edit" class="flex items-center gap-1">
-                                        <button
-                                            type="button"
-                                            class="rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-100"
-                                            @click="openTrainingEditor(entrenamiento)"
-                                        >
-                                            Editar
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-100"
-                                            @click="duplicateTraining(entrenamiento)"
-                                        >
-                                            Duplicar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="p-6">
+                            <ExerciseDetailPanel
+                                :exercise="selectedExercise"
+                                :showEditForm="showEditForm"
+                                :editFormData="editForm"
+                                :editFormErrors="editForm.errors"
+                                :isSubmitting="editForm.processing"
+                                @edit="showEditForm = !showEditForm"
+                                @delete="confirmDeleteExercise"
+                                @update:showEditForm="showEditForm = $event"
+                                @submit-edit="submitEditExercise"
+                                @cancel-edit="cancelEditForm"
+                            />
                         </div>
                     </div>
+                </Transition>
+            </Teleport>
 
-                    <div v-if="plantillas.length > 0" class="border-t border-gray-200 p-4">
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Mis Plantillas</h3>
-                        <div class="mt-2 space-y-2">
-                            <div
-                                v-for="plantilla in plantillas"
-                                :key="`tpl-${plantilla.id}`"
-                                class="rounded-lg border border-indigo-100 bg-indigo-50/70 px-3 py-2 text-xs"
+            <!-- Panel detalle ejercicio en desktop (inline para evitar espacios en blanco laterales) -->
+            <div
+                v-if="selectedExercise && activeTab === 'ejercicios'"
+                class="hidden overflow-hidden bg-white shadow-sm sm:rounded-lg lg:block"
+            >
+                <div class="border-b border-gray-200 px-6 py-4">
+                    <h2 class="text-lg font-semibold text-gray-900">Detalle del ejercicio</h2>
+                </div>
+                <div class="p-6">
+                    <ExerciseDetailPanel
+                        :exercise="selectedExercise"
+                        :showEditForm="showEditForm"
+                        :editFormData="editForm"
+                        :editFormErrors="editForm.errors"
+                        :isSubmitting="editForm.processing"
+                        @edit="showEditForm = !showEditForm"
+                        @delete="confirmDeleteExercise"
+                        @update:showEditForm="showEditForm = $event"
+                        @submit-edit="submitEditExercise"
+                        @cancel-edit="cancelEditForm"
+                    />
+                </div>
+            </div>
+
+            <div v-show="activeTab === 'plantillas'" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                <div class="border-b border-gray-200 p-6">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-900">Plantillas</h2>
+                            <p class="mt-1 text-sm text-gray-600">Filtra por nombre, visibilidad y origen para reutilizar sesiones con rapidez.</p>
+                        </div>
+                        <button
+                            type="button"
+                            class="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                            @click="openTemplateBuilder"
+                        >
+                            Crear plantilla
+                        </button>
+                    </div>
+                    <div class="mt-4 grid gap-3 md:grid-cols-3">
+                        <input
+                            v-model="plantillasSearch"
+                            type="text"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400"
+                            placeholder="Buscar plantilla por nombre"
+                        >
+                        <select
+                            v-model="plantillasVisibilityFilter"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400"
+                        >
+                            <option value="all">Visibilidad: Todas</option>
+                            <option value="public">Solo publicas</option>
+                            <option value="private">Solo privadas</option>
+                        </select>
+                        <select
+                            v-model="plantillasOwnerFilter"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400"
+                        >
+                            <option value="all">Origen: Todas</option>
+                            <option value="mine">Mis plantillas</option>
+                            <option value="community">Comunidad</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid gap-6 p-6 lg:grid-cols-2">
+                    <section>
+                        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-indigo-700">Mis Plantillas</h3>
+                        <div v-if="filteredPlantillasPropias.length === 0" class="rounded-lg border border-dashed border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-800">
+                            No hay plantillas propias que coincidan con los filtros.
+                        </div>
+                        <div v-else class="space-y-3">
+                            <article
+                                v-for="plantilla in filteredPlantillasPropias"
+                                :key="`tpl-own-tab-${plantilla.id}`"
+                                class="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4"
                             >
-                                <div class="flex items-start justify-between gap-2">
-                                    <div>
-                                        <p class="font-semibold text-indigo-900">{{ plantilla.title }}</p>
-                                        <p class="text-indigo-700">{{ plantilla.exercises.length }} {{ plantilla.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }} · {{ plantilla.target_scope === 'club' ? 'Club' : plantilla.target_scope === 'grupo' ? 'Grupo' : 'Personal' }}</p>
-                                        <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wide" :class="plantilla.is_public ? 'text-emerald-700' : 'text-slate-600'">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <h4 class="truncate text-sm font-semibold text-indigo-900">{{ plantilla.title }}</h4>
+                                        <p class="mt-1 text-xs text-indigo-700">{{ plantilla.exercises.length }} {{ plantilla.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }} · {{ formatTargetScope(plantilla.target_scope) }}</p>
+                                        <p class="mt-1 text-[10px] font-semibold uppercase tracking-wide" :class="plantilla.is_public ? 'text-emerald-700' : 'text-slate-700'">
                                             {{ plantilla.is_public ? 'Publica' : 'Privada' }}
                                         </p>
                                     </div>
                                     <div class="flex items-center gap-1">
                                         <button
                                             type="button"
-                                            class="rounded-md border border-indigo-300 bg-white px-2 py-1 text-[10px] font-semibold text-indigo-700 hover:bg-indigo-100"
+                                            class="rounded-md border border-indigo-300 bg-white px-2 py-1 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100"
                                             @click="useTemplate(plantilla)"
                                         >
                                             Usar
@@ -1399,220 +1568,54 @@ function formatCategory(category) {
                                         <button
                                             v-if="plantilla.can_edit"
                                             type="button"
-                                            class="rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-100"
+                                            class="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
                                             @click="openTrainingEditor(plantilla)"
                                         >
                                             Editar
                                         </button>
                                     </div>
                                 </div>
-                            </div>
+                            </article>
                         </div>
-                    </div>
+                    </section>
 
-                    <div v-if="plantillasGlobales.length > 0" class="border-t border-gray-200 p-4">
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-600">Plantillas Comunidad</h3>
-                        <div class="mt-2 space-y-2">
-                            <div
-                                v-for="plantilla in plantillasGlobales"
-                                :key="`tpl-global-${plantilla.id}`"
-                                class="rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-xs"
+                    <section>
+                        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-emerald-700">Plantillas Comunidad</h3>
+                        <div v-if="filteredPlantillasComunidad.length === 0" class="rounded-lg border border-dashed border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                            No hay plantillas de comunidad que coincidan con los filtros.
+                        </div>
+                        <div v-else class="space-y-3">
+                            <article
+                                v-for="plantilla in filteredPlantillasComunidad"
+                                :key="`tpl-community-tab-${plantilla.id}`"
+                                class="rounded-xl border border-emerald-100 bg-emerald-50/70 p-4"
                             >
-                                <div class="flex items-start justify-between gap-2">
-                                    <div>
-                                        <p class="font-semibold text-emerald-900">{{ plantilla.title }}</p>
-                                        <p class="text-emerald-700">{{ plantilla.exercises.length }} {{ plantilla.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }} · {{ plantilla.target_scope === 'club' ? 'Club' : plantilla.target_scope === 'grupo' ? 'Grupo' : 'Personal' }}</p>
-                                        <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                                            Por {{ plantilla.creator_name ?? 'Entrenador' }}
-                                        </p>
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <h4 class="truncate text-sm font-semibold text-emerald-900">{{ plantilla.title }}</h4>
+                                        <p class="mt-1 text-xs text-emerald-700">{{ plantilla.exercises.length }} {{ plantilla.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }} · {{ formatTargetScope(plantilla.target_scope) }}</p>
+                                        <p class="mt-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Por {{ plantilla.creator_name ?? 'Entrenador' }}</p>
                                     </div>
                                     <div class="flex items-center gap-1">
                                         <button
                                             type="button"
-                                            class="rounded-md border border-emerald-300 bg-white px-2 py-1 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                                            class="rounded-md border border-emerald-300 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
                                             @click="useTemplate(plantilla)"
                                         >
                                             Usar
                                         </button>
                                         <button
                                             type="button"
-                                            class="rounded-md border border-emerald-300 bg-white px-2 py-1 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                                            class="rounded-md border border-emerald-300 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
                                             @click="duplicateTraining(plantilla)"
                                         >
                                             Clonar
                                         </button>
                                     </div>
                                 </div>
-                            </div>
+                            </article>
                         </div>
-                    </div>
-                </div>
-
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg lg:col-span-2">
-                    <div v-if="selectedExercise" class="p-6">
-                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                            <h2 class="text-xl font-semibold text-gray-900">{{ selectedExercise.name }}</h2>
-                            <div class="flex items-center gap-2">
-                                <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-                                    {{ formatCategory(selectedExercise.category) }}
-                                </span>
-                                <span
-                                    class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
-                                    :class="selectedExercise.source === 'custom' ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-700'"
-                                >
-                                    {{ selectedExercise.source === 'custom' ? 'Ejercicio personalizado' : 'Plantilla RFESS' }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div v-if="selectedExercise.can_edit || selectedExercise.can_delete" class="mb-4 flex items-center gap-2">
-                            <button
-                                v-if="selectedExercise.can_edit"
-                                type="button"
-                                class="inline-flex items-center rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
-                                @click="openEditForm"
-                            >
-                                Editar
-                            </button>
-
-                            <button
-                                v-if="selectedExercise.can_delete"
-                                type="button"
-                                class="inline-flex items-center rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100"
-                                @click="confirmDeleteExercise"
-                            >
-                                Eliminar
-                            </button>
-                        </div>
-
-                        <form
-                            v-if="showEditForm && selectedExercise.can_edit"
-                            class="mb-4 grid gap-4 rounded-lg border border-blue-100 bg-blue-50 p-4 md:grid-cols-2"
-                            @submit.prevent="submitEditExercise"
-                        >
-                            <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Nombre *</label>
-                                <input
-                                    v-model="editForm.name"
-                                    type="text"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                >
-                                <p v-if="editForm.errors.name" class="mt-1 text-xs text-red-600">{{ editForm.errors.name }}</p>
-                            </div>
-
-                            <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Enlace de video (opcional)</label>
-                                <input
-                                    v-model="editForm.video_url"
-                                    type="url"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                >
-                                <p v-if="editForm.errors.video_url" class="mt-1 text-xs text-red-600">{{ editForm.errors.video_url }}</p>
-                            </div>
-
-                            <div class="md:col-span-2">
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Descripcion tecnica *</label>
-                                <textarea
-                                    v-model="editForm.description"
-                                    rows="3"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                />
-                                <p v-if="editForm.errors.description" class="mt-1 text-xs text-red-600">{{ editForm.errors.description }}</p>
-                            </div>
-
-                            <div class="md:col-span-2">
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Material necesario</label>
-                                <textarea
-                                    v-model="editForm.materials"
-                                    rows="2"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                />
-                                <p v-if="editForm.errors.materials" class="mt-1 text-xs text-red-600">{{ editForm.errors.materials }}</p>
-                            </div>
-
-                            <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Series por defecto</label>
-                                <input
-                                    v-model.number="editForm.default_sets"
-                                    type="number"
-                                    min="1"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                >
-                                <p v-if="editForm.errors.default_sets" class="mt-1 text-xs text-red-600">{{ editForm.errors.default_sets }}</p>
-                            </div>
-
-                            <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Metros por defecto</label>
-                                <input
-                                    v-model.number="editForm.default_meters"
-                                    type="number"
-                                    min="1"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                >
-                                <p v-if="editForm.errors.default_meters" class="mt-1 text-xs text-red-600">{{ editForm.errors.default_meters }}</p>
-                            </div>
-
-                            <div class="md:col-span-2">
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Descanso por defecto (s)</label>
-                                <input
-                                    v-model.number="editForm.default_rest_seconds"
-                                    type="number"
-                                    min="0"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                >
-                                <p v-if="editForm.errors.default_rest_seconds" class="mt-1 text-xs text-red-600">{{ editForm.errors.default_rest_seconds }}</p>
-                            </div>
-
-                            <div class="md:col-span-2 flex justify-end gap-2">
-                                <button
-                                    type="button"
-                                    class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                                    @click="cancelEditForm"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    :disabled="editForm.processing"
-                                    class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
-                                >
-                                    <span v-if="editForm.processing">Guardando...</span>
-                                    <span v-else>Guardar cambios</span>
-                                </button>
-                            </div>
-                        </form>
-
-                        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                            <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Descripcion tecnica</h3>
-                            <p class="mt-2 text-sm leading-relaxed text-gray-700">
-                                {{ selectedExercise.technical_description }}
-                            </p>
-                        </div>
-
-                        <div class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                            <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Material necesario</h3>
-                            <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-700">
-                                <li v-for="material in selectedExercise.materials" :key="material">{{ material }}</li>
-                                <li v-if="selectedExercise.materials.length === 0" class="list-none text-gray-500">Sin material especificado.</li>
-                            </ul>
-                        </div>
-
-                        <div v-if="selectedExercise.video_url" class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                            <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Enlace de video</h3>
-                            <a
-                                :href="selectedExercise.video_url"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="mt-2 inline-flex items-center text-sm font-medium text-blue-700 hover:text-blue-800"
-                            >
-                                Ver recurso multimedia
-                            </a>
-                        </div>
-                    </div>
-
-                    <div v-else class="p-10 text-center text-sm text-gray-500">
-                        Selecciona un ejercicio para ver su detalle tecnico.
-                    </div>
+                    </section>
                 </div>
             </div>
         </div>
