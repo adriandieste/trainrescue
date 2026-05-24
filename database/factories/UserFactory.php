@@ -30,6 +30,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'rol' => 'socorrista',
+            'age_category' => fake()->randomElement(['juvenil', 'junior', 'absoluto']),
             'club_id' => null,
             'remember_token' => Str::random(10),
         ];

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import GeneralLayout from '@/Layouts/GeneralLayout.vue';
+import ClubTimesPanel from './Partials/ClubTimesPanel.vue';
 import PersonalBestsTable from './Partials/PersonalBestsTable.vue';
 import DeleteUserForm from './Partials/DeleteUserForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
@@ -22,12 +23,15 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    clubTimePanel: {
+        type: Object,
+        default: null,
+    },
 });
 
 const activeTab = ref('perfil');
 const isEntrenador = computed(() => props.userProfile.rol === 'entrenador');
 const roleLabel = computed(() => props.userProfile.role_label ?? (isEntrenador.value ? 'Entrenador' : 'Socorrista'));
-const notificationsEnabled = ref(true);
 
 // Avatar reactivo: se actualiza cuando Inertia actualiza los shared props tras guardar [CA-4]
 const authUser = computed(() => usePage().props.auth.user);
@@ -40,13 +44,6 @@ const userInitials = computed(() =>
         .toUpperCase()
         .slice(0, 2)
 );
-
-const goToSetting = (id) => {
-    const section = document.getElementById(id);
-    if (section) {
-        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-};
 </script>
 
 <template>
@@ -111,6 +108,14 @@ const goToSetting = (id) => {
             </div>
 
             <section v-if="activeTab === 'perfil'" class="space-y-6">
+                <ClubTimesPanel
+                    v-if="isEntrenador && clubTimePanel"
+                    :club="clubTimePanel.club"
+                    :filters="clubTimePanel.filters"
+                    :options="clubTimePanel.options"
+                    :records="clubTimePanel.records"
+                />
+
                 <PersonalBestsTable
                     v-if="!isEntrenador"
                     :tests="personalBestTests"
