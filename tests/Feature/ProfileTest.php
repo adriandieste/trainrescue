@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Club;
 use App\Models\CustomExercise;
+use App\Models\PerformanceTest;
+use App\Models\PersonalBest;
 use App\Models\User;
 use App\Models\Workout;
 use App\Models\WorkoutExercise;
@@ -229,5 +231,164 @@ class ProfileTest extends TestCase
 
         $customExercise->refresh();
         $this->assertNull($customExercise->user_id);
+    }
+
+    public function test_socorrista_profile_displays_personal_best_tests_catalog(): void
+    {
+        $user = User::factory()->create([
+            'rol' => 'socorrista',
+        ]);
+
+        PerformanceTest::create([
+            'name' => '200 m obstáculos',
+            'structure' => '200 m piscina con obstáculos',
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->get('/profile');
+
+        $response
+            ->assertOk()
+            ->assertSee('200 m obstáculos')
+            ->assertSee('200 m piscina con obstáculos')
+            ->assertSee('Marcas personales');
+    }
+
+    public function test_socorrista_can_store_their_own_personal_best(): void
+    {
+        $user = User::factory()->create([
+            'rol' => 'socorrista',
+        ]);
+
+        $test = PerformanceTest::create([
+            'name' => '100 m socorrista',
+            'structure' => '50 m nado + 50 m arrastre con maniquí',
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->patchJson(route('profile.personal-bests.update', $test), [
+                'time' => '01:23.45',
+            ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('personal_best.time', '01:23.45');
+
+        $this->assertDatabaseHas('personal_bests', [
+            'user_id' => $user->id,
+            'performance_test_id' => $test->id,
+            'time_centiseconds' => 8345,
+        ]);
+    }
+
+    public function test_personal_best_rejects_invalid_time_format(): void
+    {
+        $user = User::factory()->create([
+            'rol' => 'socorrista',
+        ]);
+
+        $test = PerformanceTest::create([
+            'name' => '50 m arrastre de maniquí',
+            'structure' => '50 m arrastre reglamentario',
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->patchJson(route('profile.personal-bests.update', $test), [
+                'time' => '1 minuto',
+            ]);
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('time');
+    }
+
+    public function test_updating_personal_best_does_not_modify_another_users_record(): void
+    {
+        $owner = User::factory()->create([
+            'rol' => 'socorrista',
+        ]);
+        $other = User::factory()->create([
+            'rol' => 'socorrista',
+        ]);
+
+        $test = PerformanceTest::create([
+            'name' => '200 m supersocorrista',
+            'structure' => 'Obstáculos + arrastre + tubo',
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+
+        PersonalBest::create([
+            'user_id' => $other->id,
+            'performance_test_id' => $test->id,
+            'time_centiseconds' => 9900,
+            'recorded_at' => now()->toDateString(),
+        ]);
+
+        $this
+            ->actingAs($owner)
+            ->patchJson(route('profile.personal-bests.update', $test), [
+                'time' => '01:40.00',
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('personal_bests', [
+            'user_id' => $other->id,
+            'performance_test_id' => $test->id,
+            'time_centiseconds' => 9900,
+        ]);
+
+        $this->assertDatabaseHas('personal_bests', [
+            'user_id' => $owner->id,
+            'performance_test_id' => $test->id,
+            'time_centiseconds' => 10000,
+        ]);
+    }
+
+    public function test_trainer_can_read_another_athletes_personal_bests_but_socorrista_cannot(): void
+    {
+        $athlete = User::factory()->create([
+            'rol' => 'socorrista',
+        ]);
+        $trainer = User::factory()->create([
+            'rol' => 'entrenador',
+        ]);
+        $otherAthlete = User::factory()->create([
+            'rol' => 'socorrista',
+        ]);
+
+        $test = PerformanceTest::create([
+            'name' => 'Lanzamiento de cuerda',
+            'structure' => '12,5 m + recogida reglamentaria',
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+
+        PersonalBest::create([
+            'user_id' => $athlete->id,
+            'performance_test_id' => $test->id,
+            'time_centiseconds' => 1520,
+            'recorded_at' => now()->toDateString(),
+        ]);
+
+        $this
+            ->actingAs($trainer)
+            ->getJson(route('users.personal-bests.index', $athlete))
+            ->assertOk()
+            ->assertJsonPath('tests.0.personal_best.time', '00:15.20');
+
+        $this
+            ->actingAs($otherAthlete)
+            ->getJson(route('users.personal-bests.index', $athlete))
+            ->assertForbidden();
     }
 }

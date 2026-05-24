@@ -72,4 +72,9 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->belongsToMany(Group::class, 'group_user');
     }
+
+    public function personalBests(): HasMany
+    {
+        return $this->hasMany(PersonalBest::class);
+    }
 }
