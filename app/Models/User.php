@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Models\ClubInvitation;
+use App\Support\AttendanceStats;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -76,5 +78,37 @@ class User extends Authenticatable implements MustVerifyEmail
     public function personalBests(): HasMany
     {
         return $this->hasMany(PersonalBest::class);
+    }
+
+    protected function attendanceEligibleSessions(): Attribute
+    {
+        return Attribute::get(function (mixed $value): int {
+            if ($value !== null) {
+                return (int) $value;
+            }
+
+            return AttendanceStats::forUser($this)['eligible_sessions'];
+        });
+    }
+
+    protected function attendanceCompletedSessions(): Attribute
+    {
+        return Attribute::get(function (mixed $value): int {
+            if ($value !== null) {
+                return (int) $value;
+            }
+
+            return AttendanceStats::forUser($this)['completed_sessions'];
+        });
+    }
+
+    protected function attendanceRate(): Attribute
+    {
+        return Attribute::get(function (): int {
+            return AttendanceStats::calculateRate(
+                $this->attendance_completed_sessions,
+                $this->attendance_eligible_sessions,
+            );
+        });
     }
 }

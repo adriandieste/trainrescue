@@ -6,6 +6,7 @@ use App\Models\ClubInvitation;
 use App\Models\ClubJoinRequest;
 use App\Models\User;
 use App\Models\Workout;
+use App\Support\AttendanceStats;
 use App\Notifications\WorkoutAsignadoNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -50,8 +51,9 @@ class DashboardController extends Controller
 
                 $search = trim((string) $request->query('search', ''));
 
-                $members = $club->users()
+                $members = AttendanceStats::addAttendanceSelects($club->users()
                     ->orderBy('name')
+                )
                     ->paginate(10)
                     ->through(fn (User $member) => [
                         'id'         => $member->id,
@@ -60,6 +62,9 @@ class DashboardController extends Controller
                         'avatar_url' => $member->avatar ? asset('storage/' . $member->avatar) : null,
                         'role'       => $member->rol,
                         'role_label' => $member->rol === 'entrenador' ? 'Entrenador' : 'Socorrista',
+                        'attendance_rate' => $member->attendance_rate,
+                        'attendance_completed_sessions' => $member->attendance_completed_sessions,
+                        'attendance_eligible_sessions' => $member->attendance_eligible_sessions,
                     ])
                     ->withQueryString();
 
