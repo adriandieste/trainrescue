@@ -102,6 +102,11 @@ function initials(name) {
         .map((p) => p.charAt(0).toUpperCase())
         .join('');
 }
+
+function progressWidth(rate) {
+    return `${Math.max(0, Math.min(100, Number(rate ?? 0)))}%`;
+}
+
 const memberToRemove = ref(null);
 const isRemoving = ref(false);
 const memberToPromote = ref(null);
@@ -347,6 +352,7 @@ function removeMember() {
                                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Miembro</th>
                                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Email</th>
                                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Rol</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">% Asistencia</th>
                                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Acciones</th>
                                     </tr>
                                 </thead>
@@ -368,6 +374,22 @@ function removeMember() {
                                         </td>
                                         <td class="whitespace-nowrap px-4 py-4 text-sm text-gray-600">{{ member.email }}</td>
                                         <td class="whitespace-nowrap px-4 py-4 text-sm text-gray-700">{{ member.role_label }}</td>
+                                        <td class="px-4 py-4 text-sm text-gray-700">
+                                            <div class="min-w-[170px] max-w-[220px]">
+                                                <div class="mb-1 flex items-center justify-between gap-3 text-xs font-semibold">
+                                                    <span class="text-gray-900">{{ member.attendance_rate }}%</span>
+                                                    <span class="text-gray-500">
+                                                        {{ member.attendance_completed_sessions }}/{{ member.attendance_eligible_sessions }}
+                                                    </span>
+                                                </div>
+                                                <div class="h-2.5 overflow-hidden rounded-full bg-gray-100">
+                                                    <div
+                                                        class="h-full rounded-full bg-red-600 transition-all"
+                                                        :style="{ width: progressWidth(member.attendance_rate) }"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </td>
                                         <td class="whitespace-nowrap px-4 py-4 text-sm">
                                             <Dropdown
                                                 v-if="member.id !== currentClub.admin_user_id"

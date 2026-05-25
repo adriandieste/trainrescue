@@ -10,6 +10,9 @@ use App\Models\User;
 use App\Models\Workout;
 use App\Models\WorkoutExercise;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ProfileTest extends TestCase
@@ -252,9 +255,81 @@ class ProfileTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('200 m obstáculos')
-            ->assertSee('200 m piscina con obstáculos')
-            ->assertSee('Marcas personales');
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Profile/Edit')
+                ->where('personalBestTests.0.name', '200 m obstáculos')
+                ->where('personalBestTests.0.structure', '200 m piscina con obstáculos')
+            );
+    }
+
+    public function test_socorrista_profile_includes_attendance_rate_from_completed_historic_sessions_only(): void
+    {
+        $trainer = User::factory()->create(['rol' => 'entrenador']);
+        $club = Club::create([
+            'name' => 'Club Asistencia Perfil',
+            'admin_user_id' => $trainer->id,
+        ]);
+        $trainer->update(['club_id' => $club->id]);
+
+        $athlete = User::factory()->create([
+            'rol' => 'socorrista',
+            'club_id' => $club->id,
+        ]);
+
+        $clubWorkout = Workout::create([
+            'creator_user_id' => $trainer->id,
+            'club_id' => $club->id,
+            'title' => 'Sesion club completada',
+            'workout_date' => Carbon::yesterday()->toDateString(),
+            'target_scope' => 'club',
+            'is_template' => false,
+        ]);
+
+        $groupWorkout = Workout::create([
+            'creator_user_id' => $trainer->id,
+            'club_id' => $club->id,
+            'title' => 'Sesion grupal pendiente',
+            'workout_date' => Carbon::yesterday()->subDay()->toDateString(),
+            'target_scope' => 'grupo',
+            'is_template' => false,
+        ]);
+
+        $futureWorkout = Workout::create([
+            'creator_user_id' => $trainer->id,
+            'club_id' => $club->id,
+            'title' => 'Sesion futura',
+            'workout_date' => Carbon::tomorrow()->toDateString(),
+            'target_scope' => 'club',
+            'is_template' => false,
+        ]);
+
+        DB::table('workout_assignments')->insert([
+            'workout_id' => $groupWorkout->id,
+            'user_id' => $athlete->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('workout_completions')->insert([
+            'workout_id' => $clubWorkout->id,
+            'user_id' => $athlete->id,
+            'completed_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this
+            ->actingAs($athlete)
+            ->get(route('profile.edit'));
+
+        $response
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Profile/Edit')
+                ->where('userProfile.attendance_rate', 50)
+                ->where('userProfile.attendance_completed_sessions', 1)
+                ->where('userProfile.attendance_eligible_sessions', 2)
+            );
     }
 
     public function test_socorrista_can_store_their_own_personal_best(): void

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Support\AttendanceStats;
 use App\Support\ClubTimeViewData;
 use App\Support\PersonalBestViewData;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -24,6 +25,9 @@ class ProfileController extends Controller
         $user = $request->user()->load('club');
         $canonicalRole = $user->rol === 'atleta' ? 'socorrista' : $user->rol;
         $roleLabel = $canonicalRole === 'entrenador' ? 'Entrenador' : 'Socorrista';
+        $attendanceStats = $canonicalRole === 'socorrista'
+            ? AttendanceStats::forUser($user)
+            : null;
 
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
@@ -35,6 +39,9 @@ class ProfileController extends Controller
                 'role_label' => $roleLabel,
                 'avatar' => $user->avatar,
                 'club'   => $user->club?->name,
+                'attendance_rate' => $attendanceStats['attendance_rate'] ?? null,
+                'attendance_completed_sessions' => $attendanceStats['completed_sessions'] ?? null,
+                'attendance_eligible_sessions' => $attendanceStats['eligible_sessions'] ?? null,
             ],
             'personalBestTests' => $canonicalRole === 'socorrista'
                 ? PersonalBestViewData::forUser($user, $user)
