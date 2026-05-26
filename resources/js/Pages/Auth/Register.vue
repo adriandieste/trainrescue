@@ -14,13 +14,13 @@ const submit = () => form.post(route('register'), { onFinish: () => form.reset('
         <Head title="Crear cuenta" />
 
         <div class="mb-6 text-center lg:text-left">
-            <h2 class="text-3xl font-bold text-slate-800">Registro</h2>
-            <p class="text-slate-500 text-sm">Completa el formulario para empezar</p>
+            <h2 class="text-3xl font-bold text-slate-800 dark:text-white">Registro</h2>
+            <p class="text-slate-500 dark:text-zinc-400 text-sm">Completa el formulario para empezar</p>
         </div>
 
         <a
             :href="route('auth.google.redirect')"
-            class="mb-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            class="mb-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3 font-semibold text-slate-700 dark:text-zinc-100 shadow-sm transition hover:bg-slate-50 dark:hover:bg-zinc-800"
         >
             <svg class="h-5 w-5" viewBox="0 0 48 48" aria-hidden="true">
                 <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.659 32.657 29.24 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.959 3.041l5.657-5.657C34.046 6.053 29.27 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
@@ -62,7 +62,7 @@ const submit = () => form.post(route('register'), { onFinish: () => form.reset('
                 Crear mi cuenta
             </button>
 
-            <p class="text-center text-sm text-slate-500 pt-2">
+            <p class="text-center text-sm text-slate-500 dark:text-zinc-400 pt-2">
                 ¿Ya tienes cuenta? <Link :href="route('login')" class="text-red-500 font-bold hover:underline">Inicia sesión</Link>
             </p>
         </form>

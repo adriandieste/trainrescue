@@ -292,43 +292,43 @@ watch(calendarDateFilter, (dateKey) => {
         <div class="space-y-6">
             <div
                 v-if="flash.success"
-                class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800 shadow-sm"
+                class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800 shadow-sm dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400"
             >
                 {{ flash.success }}
             </div>
 
             <div
                 v-if="flash.error"
-                class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 shadow-sm"
+                class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 shadow-sm dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400"
             >
                 {{ flash.error }}
             </div>
 
-            <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                <div class="border-b border-gray-200 p-6">
+            <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:border dark:border-zinc-800 dark:bg-zinc-950">
+                <div class="border-b border-gray-200 p-6 dark:border-zinc-800">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div>
-                            <h2 class="text-lg font-semibold text-gray-900">Calendario de entrenamientos</h2>
+                            <h2 class="text-lg font-semibold text-gray-900 dark:text-zinc-100">Calendario de entrenamientos</h2>
                         </div>
 
                         <div class="flex flex-wrap items-center gap-2">
                             <button
                                 type="button"
-                                class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                                class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                 @click="shiftCalendar(-1)"
                             >
                                 Anterior
                             </button>
                             <button
                                 type="button"
-                                class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                                class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                 @click="goToToday"
                             >
                                 Hoy
                             </button>
                             <button
                                 type="button"
-                                class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                                class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                 @click="shiftCalendar(1)"
                             >
                                 Siguiente
@@ -337,12 +337,12 @@ watch(calendarDateFilter, (dateKey) => {
                     </div>
 
                     <div class="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <p class="text-sm font-semibold capitalize text-gray-800">{{ calendarTitle }}</p>
+                        <p class="text-sm font-semibold capitalize text-gray-800 dark:text-zinc-200">{{ calendarTitle }}</p>
 
                         <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                             <select
                                 v-model="calendarView"
-                                class="rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                class="rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:focus:ring-blue-500/40"
                             >
                                 <option value="month">Vista mensual</option>
                                 <option value="week">Vista semanal</option>
@@ -351,12 +351,12 @@ watch(calendarDateFilter, (dateKey) => {
                             <input
                                 v-model="calendarDateFilter"
                                 type="date"
-                                class="rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                class="rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:focus:ring-blue-500/40"
                             >
 
                             <select
                                 v-model="calendarAthleteFilter"
-                                class="rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                class="rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:focus:ring-blue-500/40"
                                 :disabled="!hasClub"
                             >
                                 <option value="all">Todos los atletas</option>
@@ -367,7 +367,7 @@ watch(calendarDateFilter, (dateKey) => {
 
                             <select
                                 v-model="calendarGroupFilter"
-                                class="rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                class="rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:focus:ring-blue-500/40"
                                 :disabled="!hasClub"
                             >
                                 <option value="all">Todos los grupos</option>
@@ -380,8 +380,8 @@ watch(calendarDateFilter, (dateKey) => {
                 </div>
 
                 <div class="p-4 sm:p-6">
-                    <div class="grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        <div v-for="label in weekdayLabels" :key="label" class="rounded bg-gray-50 py-2">{{ label }}</div>
+                    <div class="grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-500">
+                        <div v-for="label in weekdayLabels" :key="label" class="rounded bg-gray-50 py-2 dark:bg-zinc-900">{{ label }}</div>
                     </div>
 
                     <div class="mt-2 grid grid-cols-7 gap-2">
@@ -390,16 +390,16 @@ watch(calendarDateFilter, (dateKey) => {
                             :key="day.key"
                             class="min-h-28 rounded-lg border p-2 transition"
                             :class="[
-                                day.inCurrentMonth ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50/60 text-gray-400',
-                                dragOverDate === day.key ? 'border-blue-400 bg-blue-50 ring-2 ring-blue-300' : '',
+                                day.inCurrentMonth ? 'border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900' : 'border-gray-100 bg-gray-50/60 text-gray-400 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-500',
+                                dragOverDate === day.key ? 'border-blue-400 bg-blue-50 ring-2 ring-blue-300 dark:bg-blue-900/20 dark:ring-blue-500/50' : '',
                             ]"
                             @dragover="onDragOver($event, day.key)"
                             @dragleave="onDragLeave"
                             @drop="onDrop($event, day.key)"
                         >
                             <div class="mb-1 flex items-center justify-between">
-                                <span class="text-xs font-semibold">{{ day.day.getDate() }}</span>
-                                <span v-if="day.events.length" class="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                                <span class="text-xs font-semibold dark:text-zinc-100">{{ day.day.getDate() }}</span>
+                                <span v-if="day.events.length" class="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                                     {{ day.events.length }}
                                 </span>
                             </div>
@@ -414,10 +414,10 @@ watch(calendarDateFilter, (dateKey) => {
                                     :class="[
                                         draggedEvent?.id === event.id ? 'opacity-50 shadow-lg ring-2 ring-blue-300' : '',
                                         event.target_scope === 'club'
-                                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 cursor-grab active:cursor-grabbing'
+                                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 cursor-grab active:cursor-grabbing dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/40'
                                             : event.target_scope === 'grupo'
-                                                ? 'bg-purple-100 text-purple-700 hover:bg-purple-200 cursor-grab active:cursor-grabbing'
-                                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-grab active:cursor-grabbing'
+                                                ? 'bg-purple-100 text-purple-700 hover:bg-purple-200 cursor-grab active:cursor-grabbing dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/40'
+                                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-grab active:cursor-grabbing dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'
                                     ]"
                                     @dragstart="onDragStart($event, event)"
                                     @dragend="onDragEnd"
@@ -425,14 +425,14 @@ watch(calendarDateFilter, (dateKey) => {
                                 >
                                     {{ event.title }}
                                 </button>
-                                <p v-if="day.events.length > 3" class="px-1 text-[10px] font-medium text-gray-500">
+                                <p v-if="day.events.length > 3" class="px-1 text-[10px] font-medium text-gray-500 dark:text-zinc-500">
                                     +{{ day.events.length - 3 }} mas
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <p v-if="filteredCalendarEvents.length === 0" class="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3 text-sm text-gray-600">
+                    <p v-if="filteredCalendarEvents.length === 0" class="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3 text-sm text-gray-600 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400">
                         No hay entrenamientos que coincidan con los filtros seleccionados.
                     </p>
                 </div>
@@ -440,8 +440,8 @@ watch(calendarDateFilter, (dateKey) => {
             <transition name="toast">
                 <div v-if="showToast" class="fixed bottom-4 right-4 max-w-sm rounded-lg shadow-lg" :class="[
                     toastType === 'success'
-                        ? 'border border-green-200 bg-green-50 text-green-800'
-                        : 'border border-red-200 bg-red-50 text-red-800'
+                        ? 'border border-green-200 bg-green-50 text-green-800 dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400'
+                        : 'border border-red-200 bg-red-50 text-red-800 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400'
                 ]">
                     <div class="flex items-center gap-3 p-4">
                         <span v-if="toastType === 'success'" class="text-green-600">✓</span>

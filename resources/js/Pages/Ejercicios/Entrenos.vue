@@ -877,14 +877,14 @@ function formatTargetScope(scope) {
         <div class="space-y-6">
             <div
                 v-if="flash.success"
-                class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800 shadow-sm"
+                class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800 shadow-sm dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400"
             >
                 {{ flash.success }}
             </div>
 
             <div
                 v-if="flash.error"
-                class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 shadow-sm"
+                class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 shadow-sm dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400"
             >
                 {{ flash.error }}
             </div>
@@ -893,18 +893,18 @@ function formatTargetScope(scope) {
                 v-if="groupNoticeMessage"
                 class="rounded-lg border px-4 py-3 text-sm font-medium shadow-sm"
                 :class="groupNoticeType === 'success'
-                    ? 'border-green-200 bg-green-50 text-green-800'
-                    : 'border-red-200 bg-red-50 text-red-800'"
+                    ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400'
+                    : 'border-red-200 bg-red-50 text-red-800 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400'"
             >
                 {{ groupNoticeMessage }}
             </div>
 
-            <div class="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
+            <div class="rounded-lg border border-slate-200 bg-white p-2 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="grid gap-2 sm:grid-cols-3">
                     <button
                         type="button"
                         class="rounded-lg px-4 py-2 text-sm font-semibold transition"
-                        :class="activeTab === 'entrenos' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                        :class="activeTab === 'entrenos' ? 'bg-slate-800 text-white dark:bg-zinc-800' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'"
                         @click="switchTab('entrenos')"
                     >
                         Entrenos
@@ -912,7 +912,7 @@ function formatTargetScope(scope) {
                     <button
                         type="button"
                         class="rounded-lg px-4 py-2 text-sm font-semibold transition"
-                        :class="activeTab === 'ejercicios' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                        :class="activeTab === 'ejercicios' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'"
                         @click="switchTab('ejercicios')"
                     >
                         Ejercicios
@@ -920,7 +920,7 @@ function formatTargetScope(scope) {
                     <button
                         type="button"
                         class="rounded-lg px-4 py-2 text-sm font-semibold transition"
-                        :class="activeTab === 'plantillas' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                        :class="activeTab === 'plantillas' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'"
                         @click="switchTab('plantillas')"
                     >
                         Plantillas
@@ -928,14 +928,14 @@ function formatTargetScope(scope) {
                 </div>
             </div>
 
-            <div v-show="activeTab === 'entrenos' && showCreateTrainingForm" ref="trainingBuilderSectionRef" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                <div class="border-b border-gray-200 p-6">
+            <div v-show="activeTab === 'entrenos' && showCreateTrainingForm" ref="trainingBuilderSectionRef" class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:border dark:border-zinc-800 dark:bg-zinc-950">
+                <div class="border-b border-gray-200 p-6 dark:border-zinc-800">
                     <div class="flex items-start justify-between gap-4">
                         <div>
-                            <h2 class="text-lg font-semibold text-gray-900">
+                            <h2 class="text-lg font-semibold text-gray-900 dark:text-zinc-100">
                                 {{ editingTrainingId ? 'Editar entrenamiento' : 'Crear entrenamiento o plantilla' }}
                             </h2>
-                            <p class="mt-1 text-sm text-gray-600">Configura sesiones con ejercicios RFESS/personalizados y guárdalas como entrenamiento o plantilla reutilizable.</p>
+                            <p class="mt-1 text-sm text-gray-600 dark:text-zinc-400">Configura sesiones con ejercicios RFESS/personalizados y guárdalas como entrenamiento o plantilla reutilizable.</p>
                         </div>
                         <button
                             type="button"
@@ -953,11 +953,11 @@ function formatTargetScope(scope) {
                 <form class="space-y-4 p-6" @submit.prevent="submitTraining">
                     <div class="grid gap-4 md:grid-cols-3">
                         <div class="md:col-span-2">
-                            <label class="mb-1 block text-sm font-medium text-gray-700">Titulo del entrenamiento *</label>
+                            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-zinc-300">Titulo del entrenamiento *</label>
                             <input
                                 v-model="entrenamientoForm.title"
                                 type="text"
-                                class="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2"
+                                class="w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                                 :class="entrenamientoForm.errors.title ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'"
                                 placeholder="Ej: Entrenamiento de Resistencia"
                             >
@@ -965,23 +965,23 @@ function formatTargetScope(scope) {
                         </div>
 
                         <div>
-                            <label class="mb-1 block text-sm font-medium text-gray-700">Fecha {{ entrenamientoForm.is_template ? '(opcional)' : '*' }}</label>
+                            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-zinc-300">Fecha {{ entrenamientoForm.is_template ? '(opcional)' : '*' }}</label>
                             <input
                                 v-model="entrenamientoForm.workout_date"
                                 type="date"
                                 :disabled="entrenamientoForm.is_template"
-                                class="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2"
+                                class="w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                                 :class="[
                                     entrenamientoForm.errors.workout_date ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500',
-                                    entrenamientoForm.is_template ? 'cursor-not-allowed bg-gray-100 text-gray-500' : '',
+                                    entrenamientoForm.is_template ? 'cursor-not-allowed bg-gray-100 text-gray-500 dark:bg-zinc-800 dark:text-zinc-500' : '',
                                 ]"
                             >
                             <p v-if="entrenamientoForm.errors.workout_date" class="mt-1 text-xs text-red-600">{{ entrenamientoForm.errors.workout_date }}</p>
-                            <p v-if="entrenamientoForm.is_template" class="mt-1 text-xs text-gray-500">Las plantillas no se asignan a una fecha concreta.</p>
+                            <p v-if="entrenamientoForm.is_template" class="mt-1 text-xs text-gray-500 dark:text-zinc-500">Las plantillas no se asignan a una fecha concreta.</p>
                         </div>
                     </div>
 
-                    <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+                    <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-900/30 dark:bg-indigo-900/20">
                         <div class="flex items-center gap-4">
                             <label class="inline-flex items-center gap-2 cursor-pointer">
                                 <input
@@ -989,34 +989,34 @@ function formatTargetScope(scope) {
                                     type="checkbox"
                                     class="rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
                                 >
-                                <span class="text-sm font-semibold text-indigo-900">Guardar como plantilla</span>
+                                <span class="text-sm font-semibold text-indigo-900 dark:text-indigo-300">Guardar como plantilla</span>
                             </label>
 
-                            <div class="h-6 w-px bg-indigo-200"></div>
+                            <div class="h-6 w-px bg-indigo-200 dark:bg-indigo-900/30"></div>
 
                             <label class="inline-flex items-center gap-3" :class="{'opacity-50 pointer-events-none': !entrenamientoForm.is_template}">
-                                <span class="text-xs font-semibold uppercase text-indigo-700">Visibilidad:</span>
+                                <span class="text-xs font-semibold uppercase text-indigo-700 dark:text-indigo-400">Visibilidad:</span>
                                 <input
                                     v-model="entrenamientoForm.is_public"
                                     type="checkbox"
                                     class="sr-only peer"
                                     :disabled="!entrenamientoForm.is_template"
                                 >
-                                <span class="h-5 w-9 rounded-full bg-slate-300 transition peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full relative"></span>
-                                <span class="text-xs font-medium text-indigo-800">{{ entrenamientoForm.is_public ? 'Pública' : 'Privada' }}</span>
+                                <span class="h-5 w-9 rounded-full bg-slate-300 transition peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full relative dark:bg-zinc-700 dark:after:bg-zinc-200"></span>
+                                <span class="text-xs font-medium text-indigo-800 dark:text-indigo-300">{{ entrenamientoForm.is_public ? 'Pública' : 'Privada' }}</span>
                             </label>
                         </div>
 
-                        <p class="mt-2 text-xs text-indigo-600 ml-7">
+                        <p class="mt-2 text-xs text-indigo-600 ml-7 dark:text-indigo-400">
                             {{ entrenamientoForm.is_template ? 'Configuración de plantilla activa.' : 'Marca "Guardar como plantilla" para gestionar su visibilidad.' }}
                         </p>
                     </div>
 
                     <div class="max-w-sm">
-                        <label class="mb-1 block text-sm font-medium text-gray-700">Guardar para *</label>
+                        <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-zinc-300">Guardar para *</label>
                         <select
                             v-model="entrenamientoForm.target_scope"
-                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-blue-500/40"
                         >
                             <option value="personal">Mis alumnos personales</option>
                             <option v-if="hasClub" value="club">Todo mi club</option>
@@ -1026,12 +1026,12 @@ function formatTargetScope(scope) {
                     </div>
 
                     <!-- Selector de miembros del grupo -->
-                    <div v-if="entrenamientoForm.target_scope === 'grupo' && hasClub" class="max-w-sm rounded-xl border border-purple-200 bg-purple-50 p-4">
+                    <div v-if="entrenamientoForm.target_scope === 'grupo' && hasClub" class="max-w-sm rounded-xl border border-purple-200 bg-purple-50 p-4 dark:border-purple-900/30 dark:bg-purple-900/20">
                         <div class="mb-3 flex flex-col gap-3">
-                            <label class="text-sm font-semibold text-purple-900">
+                            <label class="text-sm font-semibold text-purple-900 dark:text-purple-300">
                                 Usar grupo pre-guardado
                             </label>
-                            <div v-if="availableGroups.length === 0" class="text-xs italic text-purple-600">
+                            <div v-if="availableGroups.length === 0" class="text-xs italic text-purple-600 dark:text-purple-400">
                                 No hay grupos guardados aún.
                             </div>
                             <div v-else class="flex flex-wrap gap-2">
@@ -1042,7 +1042,7 @@ function formatTargetScope(scope) {
                                     class="rounded-full px-3 py-1 text-xs font-semibold transition"
                                     :class="JSON.stringify(entrenamientoForm.assigned_user_ids) === JSON.stringify(group.user_ids)
                                         ? 'bg-purple-600 text-white'
-                                        : 'border border-purple-300 bg-white text-purple-700 hover:bg-purple-100'"
+                                        : 'border border-purple-300 bg-white text-purple-700 hover:bg-purple-100 dark:border-purple-700 dark:bg-zinc-900 dark:text-purple-300 dark:hover:bg-purple-900/20'"
                                     @click="selectGroup(group.id)"
                                 >
                                     {{ group.name }} ({{ group.member_count }})
@@ -1050,35 +1050,35 @@ function formatTargetScope(scope) {
                             </div>
                         </div>
 
-                        <div class="border-t border-purple-200 pt-3">
+                        <div class="border-t border-purple-200 pt-3 dark:border-purple-900/30">
                             <div class="mb-2 flex items-center justify-between gap-2">
-                                <label class="text-sm font-semibold text-purple-900">
+                                <label class="text-sm font-semibold text-purple-900 dark:text-purple-300">
                                     Seleccionar atletas manualmente *
                                 </label>
                                 <button
                                     type="button"
-                                    class="text-xs font-medium text-purple-700 hover:underline"
+                                    class="text-xs font-medium text-purple-700 hover:underline dark:text-purple-300"
                                     @click="openCreateGroupModal"
                                 >
                                     Guardar como grupo
                                 </button>
                             </div>
-                            <div v-if="clubMembers.length === 0" class="rounded-lg border border-dashed border-purple-300 bg-white p-3 text-sm italic text-purple-600">
+                            <div v-if="clubMembers.length === 0" class="rounded-lg border border-dashed border-purple-300 bg-white p-3 text-sm italic text-purple-600 dark:border-purple-700 dark:bg-zinc-900 dark:text-purple-300">
                                 No hay otros miembros en tu club.
                             </div>
-                            <div v-else class="max-h-44 overflow-y-auto space-y-1 rounded-lg border border-purple-200 bg-white p-2">
+                            <div v-else class="max-h-44 overflow-y-auto space-y-1 rounded-lg border border-purple-200 bg-white p-2 dark:border-purple-700 dark:bg-zinc-900">
                                 <label
                                     v-for="member in clubMembers"
                                     :key="member.id"
-                                    class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 transition hover:bg-purple-50"
+                                    class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 transition hover:bg-purple-50 dark:hover:bg-purple-900/20"
                                 >
                                     <input
                                         type="checkbox"
                                         :value="member.id"
                                         v-model="entrenamientoForm.assigned_user_ids"
-                                        class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                        class="rounded border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-zinc-700 dark:bg-zinc-900"
                                     >
-                                    <span class="flex-1 text-sm text-gray-800">{{ member.name }}</span>
+                                    <span class="flex-1 text-sm text-gray-800 dark:text-zinc-200">{{ member.name }}</span>
                                     <span
                                         class="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
                                         :class="member.role_label === 'Entrenador' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'"
@@ -1102,13 +1102,13 @@ function formatTargetScope(scope) {
                         </div>
                     </div>
 
-                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/60">
                         <div class="mb-3 flex items-center justify-between gap-2">
-                            <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Ejercicios del entrenamiento</h3>
-                            <span class="text-xs text-gray-500">{{ entrenamientoForm.exercises.length }} {{ entrenamientoForm.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }}</span>
+                            <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-600 dark:text-zinc-400">Ejercicios del entrenamiento</h3>
+                            <span class="text-xs text-gray-500 dark:text-zinc-500">{{ entrenamientoForm.exercises.length }} {{ entrenamientoForm.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }}</span>
                         </div>
 
-                        <div v-if="entrenamientoForm.exercises.length === 0" class="rounded-lg border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-500">
+                        <div v-if="entrenamientoForm.exercises.length === 0" class="rounded-lg border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-500">
                             Agrega ejercicios desde el aprartado de ejercicios para construir el entrenamiento.
                         </div>
 
@@ -1117,7 +1117,7 @@ function formatTargetScope(scope) {
                                 v-for="(item, index) in entrenamientoForm.exercises"
                                 :key="`${item.source}-${item.exercise_id}-${index}`"
                                 draggable="true"
-                                class="rounded-lg border border-gray-200 bg-white p-3 transition-shadow"
+                                class="rounded-lg border border-gray-200 bg-white p-3 transition-shadow dark:border-zinc-700 dark:bg-zinc-900"
                                 :class="draggedTrainingIndex === index ? 'opacity-50 shadow-lg ring-2 ring-blue-300' : ''"
                                 @dragstart="startTrainingDrag(index)"
                                 @dragover.prevent
@@ -1127,13 +1127,13 @@ function formatTargetScope(scope) {
                                 <div class="mb-3 flex items-center justify-between gap-2">
                                     <!-- Drag handle + name -->
                                     <div class="flex items-center gap-2 min-w-0">
-                                        <span class="cursor-grab shrink-0 text-gray-300 hover:text-gray-500" title="Arrastrar para reordenar">
+                                        <span class="cursor-grab shrink-0 text-gray-300 hover:text-gray-500 dark:text-zinc-600 dark:hover:text-zinc-400" title="Arrastrar para reordenar">
                                             <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                                 <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"/>
                                             </svg>
                                         </span>
                                         <div class="min-w-0">
-                                            <p class="text-sm font-semibold text-gray-900">{{ index + 1 }}. {{ item.name }}</p>
+                                            <p class="text-sm font-semibold text-gray-900 dark:text-zinc-100">{{ index + 1 }}. {{ item.name }}</p>
                                             <span
                                                 class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
                                                 :class="item.source === 'custom' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'"
@@ -1147,7 +1147,7 @@ function formatTargetScope(scope) {
                                         <button
                                             type="button"
                                             :disabled="index === 0"
-                                            class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                                            class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
                                             title="Subir"
                                             @click="moveExerciseUp(index)"
                                         >
@@ -1156,7 +1156,7 @@ function formatTargetScope(scope) {
                                         <button
                                             type="button"
                                             :disabled="index === entrenamientoForm.exercises.length - 1"
-                                            class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                                            class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
                                             title="Bajar"
                                             @click="moveExerciseDown(index)"
                                         >
@@ -1174,7 +1174,7 @@ function formatTargetScope(scope) {
                                 </div>
 
                                 <div class="grid gap-2 md:grid-cols-3">
-                                    <label class="text-xs font-medium text-gray-600">
+                                    <label class="text-xs font-medium text-gray-600 dark:text-zinc-400">
                                         Series *
                                         <input
                                             v-model.number="item.sets"
@@ -1185,7 +1185,7 @@ function formatTargetScope(scope) {
                                         >
                                         <span v-if="!item.sets || item.sets < 1" class="text-red-500 text-[10px]">Mínimo 1 serie</span>
                                     </label>
-                                    <label class="text-xs font-medium text-gray-600">
+                                    <label class="text-xs font-medium text-gray-600 dark:text-zinc-400">
                                         Metros
                                         <input
                                             v-model.number="item.meters"
@@ -1195,7 +1195,7 @@ function formatTargetScope(scope) {
                                             class="mt-1 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-300"
                                         >
                                     </label>
-                                    <label class="text-xs font-medium text-gray-600">
+                                    <label class="text-xs font-medium text-gray-600 dark:text-zinc-400">
                                         Descanso (s)
                                         <input
                                             v-model.number="item.rest_seconds"
@@ -1230,12 +1230,12 @@ function formatTargetScope(scope) {
                 </form>
             </div>
 
-            <div v-show="activeTab === 'entrenos'" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                <div class="border-b border-gray-200 p-6">
+            <div v-show="activeTab === 'entrenos'" class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:border dark:border-zinc-800 dark:bg-zinc-950">
+                <div class="border-b border-gray-200 p-6 dark:border-zinc-800">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div>
-                            <h2 class="text-lg font-semibold text-gray-900">Entrenos guardados</h2>
-                            <p class="mt-1 text-sm text-gray-600">Busca por titulo y filtra por destinatario para gestionar sesiones rapidamente.</p>
+                            <h2 class="text-lg font-semibold text-gray-900 dark:text-zinc-100">Entrenos guardados</h2>
+                            <p class="mt-1 text-sm text-gray-600 dark:text-zinc-400">Busca por titulo y filtra por destinatario para gestionar sesiones rapidamente.</p>
                         </div>
                         <button
                             type="button"
@@ -1246,19 +1246,19 @@ function formatTargetScope(scope) {
                         </button>
                         <div class="grid w-full gap-3 sm:grid-cols-2 lg:max-w-2xl">
                             <div>
-                                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Buscar</label>
+                                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-500">Buscar</label>
                                 <input
                                     v-model="entrenosSearch"
                                     type="text"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-400"
+                                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-slate-500 focus:ring-2 focus:ring-slate-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                                     placeholder="Ej: Resistencia, Potencia..."
                                 >
                             </div>
                             <div>
-                                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Destinatario</label>
+                                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-500">Destinatario</label>
                                 <select
                                     v-model="entrenosScopeFilter"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-400"
+                                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-slate-500 focus:ring-2 focus:ring-slate-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                                 >
                                     <option value="all">Todos</option>
                                     <option value="club">Todo el club</option>
@@ -1271,7 +1271,7 @@ function formatTargetScope(scope) {
                 </div>
 
                 <div class="p-6">
-                    <div v-if="filteredEntrenamientos.length === 0" class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-sm text-gray-600">
+                    <div v-if="filteredEntrenamientos.length === 0" class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-sm text-gray-600 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400">
                         No hay entrenos que coincidan con los filtros actuales.
                     </div>
 
@@ -1279,14 +1279,14 @@ function formatTargetScope(scope) {
                         <article
                             v-for="entrenamiento in filteredEntrenamientos"
                             :key="`training-tab-${entrenamiento.id}`"
-                            class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                            class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
                         >
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
-                                    <h3 class="truncate text-sm font-semibold text-gray-900">{{ entrenamiento.title }}</h3>
-                                    <p class="mt-1 text-xs text-gray-500">{{ entrenamiento.workout_date || 'Sin fecha' }} · {{ formatTargetScope(entrenamiento.target_scope) }}</p>
+                                    <h3 class="truncate text-sm font-semibold text-gray-900 dark:text-zinc-100">{{ entrenamiento.title }}</h3>
+                                    <p class="mt-1 text-xs text-gray-500 dark:text-zinc-500">{{ entrenamiento.workout_date || 'Sin fecha' }} · {{ formatTargetScope(entrenamiento.target_scope) }}</p>
                                 </div>
-                                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700 dark:bg-zinc-800 dark:text-zinc-300">
                                     {{ entrenamiento.exercises?.length ?? 0 }} ej.
                                 </span>
                             </div>
@@ -1294,7 +1294,7 @@ function formatTargetScope(scope) {
                                 <button
                                     v-if="entrenamiento.can_edit"
                                     type="button"
-                                    class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+                                    class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                     @click="openTrainingEditor(entrenamiento)"
                                 >
                                     Editar
@@ -1324,12 +1324,12 @@ function formatTargetScope(scope) {
             />
 
             <!-- Seccion ejercicios guardados -->
-            <div v-show="activeTab === 'ejercicios'" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                <div class="border-b border-gray-200 p-6">
+            <div v-show="activeTab === 'ejercicios'" class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:border dark:border-zinc-800 dark:bg-zinc-950">
+                <div class="border-b border-gray-200 p-6 dark:border-zinc-800">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div>
-                            <h2 class="text-lg font-semibold text-gray-900">Biblioteca de ejercicios</h2>
-                            <p class="mt-1 text-sm text-gray-600">Busca, filtra y gestiona tu catálogo de ejercicios para agregar a entrenamientos.</p>
+                            <h2 class="text-lg font-semibold text-gray-900 dark:text-zinc-100">Biblioteca de ejercicios</h2>
+                            <p class="mt-1 text-sm text-gray-600 dark:text-zinc-400">Busca, filtra y gestiona tu catálogo de ejercicios para agregar a entrenamientos.</p>
                         </div>
                         <button
                             type="button"
@@ -1343,12 +1343,12 @@ function formatTargetScope(scope) {
                     <!-- Filtros toolbar -->
                     <div class="mt-4 grid gap-3 md:grid-cols-4">
                         <div>
-                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Origen</label>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-500">Origen</label>
                             <div class="flex gap-1">
                                 <button
                                     type="button"
                                     class="flex-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition"
-                                    :class="selectedSource === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                                    :class="selectedSource === 'all' ? 'bg-gray-800 text-white dark:bg-zinc-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'"
                                     @click="selectedSource = 'all'"
                                 >
                                     Todos
@@ -1356,7 +1356,7 @@ function formatTargetScope(scope) {
                                 <button
                                     type="button"
                                     class="flex-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition"
-                                    :class="selectedSource === 'predefined' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                                    :class="selectedSource === 'predefined' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'"
                                     @click="selectedSource = 'predefined'"
                                 >
                                     RFESS
@@ -1364,7 +1364,7 @@ function formatTargetScope(scope) {
                                 <button
                                     type="button"
                                     class="flex-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition"
-                                    :class="selectedSource === 'custom' ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                                    :class="selectedSource === 'custom' ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'"
                                     @click="selectedSource = 'custom'"
                                 >
                                     Míos
@@ -1373,10 +1373,10 @@ function formatTargetScope(scope) {
                         </div>
 
                         <div>
-                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Categoría</label>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-500">Categoría</label>
                             <select
                                 v-model="selectedCategory"
-                                class="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                             >
                                 <option value="all">Todas</option>
                                 <option v-for="category in categories" :key="category" :value="category">
@@ -1386,11 +1386,11 @@ function formatTargetScope(scope) {
                         </div>
 
                         <div class="md:col-span-2">
-                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Buscar</label>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-500">Buscar</label>
                             <input
                                 v-model="search"
                                 type="text"
-                                class="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                                 placeholder="Nombre, descripción o material"
                             >
                         </div>
@@ -1399,7 +1399,7 @@ function formatTargetScope(scope) {
 
                 <!-- Grid de ejercicios -->
                 <div class="p-6">
-                    <div v-if="filteredExercises.length === 0" class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-sm text-gray-600">
+                    <div v-if="filteredExercises.length === 0" class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-sm text-gray-600 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400">
                         No hay ejercicios que coincidan con los filtros actuales.
                     </div>
 
@@ -1440,12 +1440,12 @@ function formatTargetScope(scope) {
                     leave-from-class="translate-x-0"
                     leave-to-class="translate-x-full"
                 >
-                    <div class="fixed right-0 top-0 z-50 h-screen max-h-screen w-full overflow-y-auto bg-white shadow-xl sm:max-w-2xl md:max-w-3xl lg:hidden">
-                        <div class="sticky top-0 z-40 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4 lg:hidden">
-                            <h2 class="text-lg font-semibold text-gray-900">{{ selectedExercise.name }}</h2>
+                    <div class="fixed right-0 top-0 z-50 h-screen max-h-screen w-full overflow-y-auto bg-white shadow-xl sm:max-w-2xl md:max-w-3xl lg:hidden dark:bg-zinc-950">
+                        <div class="sticky top-0 z-40 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4 lg:hidden dark:border-zinc-800 dark:bg-zinc-950">
+                            <h2 class="text-lg font-semibold text-gray-900 dark:text-zinc-100">{{ selectedExercise.name }}</h2>
                             <button
                                 type="button"
-                                class="text-gray-400 hover:text-gray-600"
+                                class="text-gray-400 hover:text-gray-600 dark:text-zinc-500 dark:hover:text-zinc-300"
                                 @click="selectedExerciseId = null"
                             >
                                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1475,10 +1475,10 @@ function formatTargetScope(scope) {
             <!-- Panel detalle ejercicio en desktop (inline para evitar espacios en blanco laterales) -->
             <div
                 v-if="selectedExercise && activeTab === 'ejercicios'"
-                class="hidden overflow-hidden bg-white shadow-sm sm:rounded-lg lg:block"
+                class="hidden overflow-hidden bg-white shadow-sm sm:rounded-lg lg:block dark:border dark:border-zinc-800 dark:bg-zinc-950"
             >
-                <div class="border-b border-gray-200 px-6 py-4">
-                    <h2 class="text-lg font-semibold text-gray-900">Detalle del ejercicio</h2>
+                <div class="border-b border-gray-200 px-6 py-4 dark:border-zinc-800">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-zinc-100">Detalle del ejercicio</h2>
                 </div>
                 <div class="p-6">
                     <ExerciseDetailPanel
@@ -1496,12 +1496,12 @@ function formatTargetScope(scope) {
                 </div>
             </div>
 
-            <div v-show="activeTab === 'plantillas'" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                <div class="border-b border-gray-200 p-6">
+            <div v-show="activeTab === 'plantillas'" class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:border dark:border-zinc-800 dark:bg-zinc-950">
+                <div class="border-b border-gray-200 p-6 dark:border-zinc-800">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div>
-                            <h2 class="text-lg font-semibold text-gray-900">Plantillas</h2>
-                            <p class="mt-1 text-sm text-gray-600">Filtra por nombre, visibilidad y origen para reutilizar sesiones con rapidez.</p>
+                            <h2 class="text-lg font-semibold text-gray-900 dark:text-zinc-100">Plantillas</h2>
+                            <p class="mt-1 text-sm text-gray-600 dark:text-zinc-400">Filtra por nombre, visibilidad y origen para reutilizar sesiones con rapidez.</p>
                         </div>
                         <button
                             type="button"
@@ -1515,12 +1515,12 @@ function formatTargetScope(scope) {
                         <input
                             v-model="plantillasSearch"
                             type="text"
-                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400"
+                            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                             placeholder="Buscar plantilla por nombre"
                         >
                         <select
                             v-model="plantillasVisibilityFilter"
-                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400"
+                            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                         >
                             <option value="all">Visibilidad: Todas</option>
                             <option value="public">Solo publicas</option>
@@ -1528,7 +1528,7 @@ function formatTargetScope(scope) {
                         </select>
                         <select
                             v-model="plantillasOwnerFilter"
-                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400"
+                            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                         >
                             <option value="all">Origen: Todas</option>
                             <option value="mine">Mis plantillas</option>
@@ -1539,20 +1539,20 @@ function formatTargetScope(scope) {
 
                 <div class="grid gap-6 p-6 lg:grid-cols-2">
                     <section>
-                        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-indigo-700">Mis Plantillas</h3>
-                        <div v-if="filteredPlantillasPropias.length === 0" class="rounded-lg border border-dashed border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-800">
+                         <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Mis Plantillas</h3>
+                         <div v-if="filteredPlantillasPropias.length === 0" class="rounded-lg border border-dashed border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-800 dark:border-indigo-900/30 dark:bg-indigo-900/20 dark:text-indigo-300">
                             No hay plantillas propias que coincidan con los filtros.
                         </div>
                         <div v-else class="space-y-3">
                             <article
                                 v-for="plantilla in filteredPlantillasPropias"
                                 :key="`tpl-own-tab-${plantilla.id}`"
-                                class="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4"
+                                class="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4 dark:border-indigo-900/30 dark:bg-indigo-900/20"
                             >
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="min-w-0">
-                                        <h4 class="truncate text-sm font-semibold text-indigo-900">{{ plantilla.title }}</h4>
-                                        <p class="mt-1 text-xs text-indigo-700">{{ plantilla.exercises.length }} {{ plantilla.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }} · {{ formatTargetScope(plantilla.target_scope) }}</p>
+                                        <h4 class="truncate text-sm font-semibold text-indigo-900 dark:text-indigo-300">{{ plantilla.title }}</h4>
+                                        <p class="mt-1 text-xs text-indigo-700 dark:text-indigo-400">{{ plantilla.exercises.length }} {{ plantilla.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }} · {{ formatTargetScope(plantilla.target_scope) }}</p>
                                         <p class="mt-1 text-[10px] font-semibold uppercase tracking-wide" :class="plantilla.is_public ? 'text-emerald-700' : 'text-slate-700'">
                                             {{ plantilla.is_public ? 'Publica' : 'Privada' }}
                                         </p>
@@ -1560,7 +1560,7 @@ function formatTargetScope(scope) {
                                     <div class="flex items-center gap-1">
                                         <button
                                             type="button"
-                                            class="rounded-md border border-indigo-300 bg-white px-2 py-1 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100"
+                                            class="rounded-md border border-indigo-300 bg-white px-2 py-1 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-zinc-900 dark:text-indigo-300 dark:hover:bg-indigo-900/30"
                                             @click="useTemplate(plantilla)"
                                         >
                                             Usar
@@ -1568,7 +1568,7 @@ function formatTargetScope(scope) {
                                         <button
                                             v-if="plantilla.can_edit"
                                             type="button"
-                                            class="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+                                            class="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                             @click="openTrainingEditor(plantilla)"
                                         >
                                             Editar
@@ -1580,33 +1580,33 @@ function formatTargetScope(scope) {
                     </section>
 
                     <section>
-                        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-emerald-700">Plantillas Comunidad</h3>
-                        <div v-if="filteredPlantillasComunidad.length === 0" class="rounded-lg border border-dashed border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Plantillas Comunidad</h3>
+                        <div v-if="filteredPlantillasComunidad.length === 0" class="rounded-lg border border-dashed border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-900/30 dark:bg-emerald-900/20 dark:text-emerald-300">
                             No hay plantillas de comunidad que coincidan con los filtros.
                         </div>
                         <div v-else class="space-y-3">
                             <article
                                 v-for="plantilla in filteredPlantillasComunidad"
                                 :key="`tpl-community-tab-${plantilla.id}`"
-                                class="rounded-xl border border-emerald-100 bg-emerald-50/70 p-4"
+                                class="rounded-xl border border-emerald-100 bg-emerald-50/70 p-4 dark:border-emerald-900/30 dark:bg-emerald-900/20"
                             >
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="min-w-0">
-                                        <h4 class="truncate text-sm font-semibold text-emerald-900">{{ plantilla.title }}</h4>
-                                        <p class="mt-1 text-xs text-emerald-700">{{ plantilla.exercises.length }} {{ plantilla.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }} · {{ formatTargetScope(plantilla.target_scope) }}</p>
-                                        <p class="mt-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Por {{ plantilla.creator_name ?? 'Entrenador' }}</p>
+                                        <h4 class="truncate text-sm font-semibold text-emerald-900 dark:text-emerald-300">{{ plantilla.title }}</h4>
+                                        <p class="mt-1 text-xs text-emerald-700 dark:text-emerald-400">{{ plantilla.exercises.length }} {{ plantilla.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }} · {{ formatTargetScope(plantilla.target_scope) }}</p>
+                                        <p class="mt-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">Por {{ plantilla.creator_name ?? 'Entrenador' }}</p>
                                     </div>
                                     <div class="flex items-center gap-1">
                                         <button
                                             type="button"
-                                            class="rounded-md border border-emerald-300 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                                            class="rounded-md border border-emerald-300 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-zinc-900 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
                                             @click="useTemplate(plantilla)"
                                         >
                                             Usar
                                         </button>
                                         <button
                                             type="button"
-                                            class="rounded-md border border-emerald-300 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                                            class="rounded-md border border-emerald-300 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-zinc-900 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
                                             @click="duplicateTraining(plantilla)"
                                         >
                                             Clonar
@@ -1631,22 +1631,22 @@ function formatTargetScope(scope) {
             >
                 <div v-if="exerciseToDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="cancelDeleteExercise" />
-                    <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                    <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:border dark:border-zinc-800 dark:bg-zinc-950">
                         <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
                             <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                             </svg>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-900">Confirmar eliminación</h3>
-                        <p class="mt-2 text-sm text-gray-600">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-zinc-100">Confirmar eliminación</h3>
+                        <p class="mt-2 text-sm text-gray-600 dark:text-zinc-400">
                             ¿Estás seguro de que deseas eliminar el ejercicio
-                            <strong class="text-gray-900">{{ exerciseToDelete.name }}</strong>?
+                            <strong class="text-gray-900 dark:text-zinc-100">{{ exerciseToDelete.name }}</strong>?
                             Esta acción no se puede deshacer.
                         </p>
                         <div class="mt-6 flex gap-3">
                             <button
                                 type="button"
-                                class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                                class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                 @click="cancelDeleteExercise"
                             >
                                 Cancelar
@@ -1678,22 +1678,22 @@ function formatTargetScope(scope) {
             >
                 <div v-if="pendingRemoveIndex !== null" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="cancelRemoveExercise" />
-                    <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                    <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:border dark:border-zinc-800 dark:bg-zinc-950">
                         <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
                             <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                             </svg>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-900">Quitar ejercicio de la sesion</h3>
-                        <p class="mt-2 text-sm text-gray-600">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-zinc-100">Quitar ejercicio de la sesion</h3>
+                        <p class="mt-2 text-sm text-gray-600 dark:text-zinc-400">
                             Estas editando un entrenamiento ya guardado. Al guardar los cambios, este ejercicio sera eliminado permanentemente de la sesion.
-                            <strong class="text-gray-900">{{ pendingRemoveIndex !== null ? entrenamientoForm.exercises[pendingRemoveIndex]?.name : '' }}</strong>
+                            <strong class="text-gray-900 dark:text-zinc-100">{{ pendingRemoveIndex !== null ? entrenamientoForm.exercises[pendingRemoveIndex]?.name : '' }}</strong>
                         </p>
                         <p class="mt-2 text-xs text-amber-700 font-medium">El ejercicio seguira disponible en la biblioteca.</p>
                         <div class="mt-6 flex gap-3">
                             <button
                                 type="button"
-                                class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                                class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                 @click="cancelRemoveExercise"
                             >
                                 Cancelar
@@ -1723,26 +1723,26 @@ function formatTargetScope(scope) {
             >
                 <div v-if="showCreateGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeCreateGroupModal" />
-                    <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-                        <h3 class="text-lg font-semibold text-gray-900">Guardar selección como grupo</h3>
-                        <p class="mt-2 text-sm text-gray-600">
+                    <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:border dark:border-zinc-800 dark:bg-zinc-950">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-zinc-100">Guardar selección como grupo</h3>
+                        <p class="mt-2 text-sm text-gray-600 dark:text-zinc-400">
                             Dale un nombre a este grupo para poder reutilizarlo en futuros entrenamientos.
                         </p>
                         <div
                             v-if="groupNoticeMessage"
                             class="mt-3 rounded-lg border px-4 py-3 text-sm font-medium shadow-sm"
                             :class="groupNoticeType === 'success'
-                                ? 'border-green-200 bg-green-50 text-green-800'
-                                : 'border-red-200 bg-red-50 text-red-800'"
+                                ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400'
+                                : 'border-red-200 bg-red-50 text-red-800 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400'"
                         >
                             {{ groupNoticeMessage }}
                         </div>
                         <div class="mt-4">
-                            <label class="mb-2 block text-sm font-medium text-gray-700">Nombre del grupo *</label>
+                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-zinc-300">Nombre del grupo *</label>
                             <input
                                 v-model="newGroupName"
                                 type="text"
-                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:ring-2 focus:ring-purple-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                                 placeholder="Ej: Equipo A, Grupo rescate, etc."
                                 @keyup.enter="submitCreateGroup"
                             >
@@ -1750,7 +1750,7 @@ function formatTargetScope(scope) {
                         <div class="mt-4 flex gap-3">
                             <button
                                 type="button"
-                                class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                                class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                 @click="closeCreateGroupModal"
                             >
                                 Cancelar

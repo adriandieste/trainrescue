@@ -137,43 +137,43 @@ onUnmounted(() => {
         <div class="py-12">
             <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
                 <!-- Calendario de planificación e historial -->
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                    <div class="border-b border-gray-200 p-6">
+                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:bg-zinc-950 dark:border dark:border-zinc-800">
+                    <div class="border-b border-gray-200 p-6 dark:border-zinc-800">
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <h1 class="text-2xl font-semibold text-gray-900">Calendario de planificación</h1>
-                                <p class="mt-1 text-sm text-gray-600">Revisa histórico y sesiones futuras con estados de cumplimiento.</p>
+                                <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Calendario de planificación</h1>
+                                <p class="mt-1 text-sm text-gray-600 dark:text-zinc-400">Revisa histórico y sesiones futuras con estados de cumplimiento.</p>
                             </div>
                             <div class="flex items-center gap-2">
                                 <button
                                     type="button"
-                                    class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                                    class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                     @click="shiftCalendarMonth(-1)"
                                 >
                                     Mes anterior
                                 </button>
                                 <button
                                     type="button"
-                                    class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                                    class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                     @click="goToCurrentMonth"
                                 >
                                     Hoy
                                 </button>
                                 <button
                                     type="button"
-                                    class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                                    class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                     @click="shiftCalendarMonth(1)"
                                 >
                                     Mes siguiente
                                 </button>
                             </div>
                         </div>
-                        <p class="mt-3 text-sm font-semibold capitalize text-gray-800">{{ calendarTitle }}</p>
+                        <p class="mt-3 text-sm font-semibold capitalize text-gray-800 dark:text-zinc-200">{{ calendarTitle }}</p>
                     </div>
 
                     <div class="p-4 sm:p-6">
-                        <div class="grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
-                            <div v-for="label in calendarWeekdayLabels" :key="label" class="rounded bg-gray-50 py-2">{{ label }}</div>
+                        <div class="grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-500">
+                            <div v-for="label in calendarWeekdayLabels" :key="label" class="rounded bg-gray-50 py-2 dark:bg-zinc-900">{{ label }}</div>
                         </div>
 
                         <div class="mt-2 grid grid-cols-7 gap-2">
@@ -182,8 +182,8 @@ onUnmounted(() => {
                                 :key="day.key"
                                 class="min-h-28 rounded-lg border p-2 text-left transition"
                                 :class="[
-                                    day.inCurrentMonth ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50/70 text-gray-400',
-                                    selectedCalendarDate === day.key ? 'ring-2 ring-blue-300' : '',
+                                    day.inCurrentMonth ? 'border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900' : 'border-gray-100 bg-gray-50/70 text-gray-400 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-500',
+                                    selectedCalendarDate === day.key ? 'ring-2 ring-blue-300 dark:ring-blue-500' : '',
                                 ]"
                                 role="button"
                                 tabindex="0"
@@ -192,8 +192,8 @@ onUnmounted(() => {
                                 @keydown.space.prevent="selectCalendarDay(day.key)"
                             >
                                 <div class="mb-1 flex items-center justify-between">
-                                    <span class="text-xs font-semibold">{{ day.day.getDate() }}</span>
-                                    <span v-if="day.workouts.length" class="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                                    <span class="text-xs font-semibold dark:text-white">{{ day.day.getDate() }}</span>
+                                    <span v-if="day.workouts.length" class="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                                         {{ day.workouts.length }}
                                     </span>
                                 </div>
@@ -204,29 +204,29 @@ onUnmounted(() => {
                                         :key="`cal-${day.key}-${workout.id}`"
                                         class="truncate rounded px-2 py-1 text-[10px] font-semibold"
                                         :class="workout.completion_status === 'completed'
-                                            ? 'bg-emerald-100 text-emerald-700'
+                                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                                             : workout.completion_status === 'pending'
-                                                ? 'bg-rose-100 text-rose-700'
-                                                : 'bg-blue-100 text-blue-700'"
+                                                ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+                                                : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'"
                                     >
                                         {{ workout.title }}
                                     </div>
-                                    <p v-if="day.workouts.length > 2" class="px-1 text-[10px] text-gray-500">+{{ day.workouts.length - 2 }} más</p>
+                                    <p v-if="day.workouts.length > 2" class="px-1 text-[10px] text-gray-500 dark:text-zinc-500">+{{ day.workouts.length - 2 }} más</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                        <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
                             <div class="mb-2 flex items-center justify-between">
-                                <h3 class="text-sm font-semibold text-gray-900">Detalle del día {{ formatDate(selectedCalendarDate) }}</h3>
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Detalle del día {{ formatDate(selectedCalendarDate) }}</h3>
                                 <div class="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide">
-                                    <span class="inline-flex items-center gap-1 text-emerald-700"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>Completado</span>
-                                    <span class="inline-flex items-center gap-1 text-rose-700"><span class="h-2 w-2 rounded-full bg-rose-500"></span>Pendiente</span>
-                                    <span class="inline-flex items-center gap-1 text-blue-700"><span class="h-2 w-2 rounded-full bg-blue-500"></span>Futuro</span>
+                                    <span class="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>Completado</span>
+                                    <span class="inline-flex items-center gap-1 text-rose-700 dark:text-rose-400"><span class="h-2 w-2 rounded-full bg-rose-500"></span>Pendiente</span>
+                                    <span class="inline-flex items-center gap-1 text-blue-700 dark:text-blue-400"><span class="h-2 w-2 rounded-full bg-blue-500"></span>Futuro</span>
                                 </div>
                             </div>
 
-                            <div v-if="selectedDayWorkouts.length === 0" class="text-sm text-gray-500">
+                            <div v-if="selectedDayWorkouts.length === 0" class="text-sm text-gray-500 dark:text-zinc-500">
                                 No hay entrenamientos programados en este día.
                             </div>
 
@@ -234,18 +234,18 @@ onUnmounted(() => {
                                 <div
                                     v-for="workout in selectedDayWorkouts"
                                     :key="`selected-${workout.id}`"
-                                    class="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-3 sm:flex-row sm:items-center sm:justify-between"
+                                    class="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-3 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-700 dark:bg-zinc-800"
                                 >
                                     <div>
-                                        <p class="text-sm font-semibold text-gray-900">{{ workout.title }}</p>
-                                        <p class="text-xs text-gray-500">{{ workout.exercises.length }} {{ workout.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }}</p>
+                                        <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ workout.title }}</p>
+                                        <p class="text-xs text-gray-500 dark:text-zinc-400">{{ workout.exercises.length }} {{ workout.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }}</p>
                                         <span
                                             class="mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold"
                                             :class="workout.completion_status === 'completed'
-                                                ? 'bg-emerald-100 text-emerald-700'
+                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                                                 : workout.completion_status === 'pending'
-                                                    ? 'bg-rose-100 text-rose-700'
-                                                    : 'bg-blue-100 text-blue-700'"
+                                                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+                                                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'"
                                         >
                                             {{ statusLabel(workout.completion_status) }}
                                         </span>
@@ -254,14 +254,14 @@ onUnmounted(() => {
                                     <div class="flex items-center gap-2">
                                         <a
                                             :href="route('entrenamientos.index')"
-                                            class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                                            class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                         >
                                             Ver detalles
                                         </a>
                                         <button
                                             v-if="workout.completion_status !== 'completed' && workout.workout_date <= todayKey"
                                             type="button"
-                                            class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700"
+                                            class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 dark:hover:bg-emerald-500"
                                             @click="markWorkoutCompleted(workout.id)"
                                         >
                                             Marcar realizado

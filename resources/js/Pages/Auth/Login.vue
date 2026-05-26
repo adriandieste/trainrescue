@@ -16,13 +16,13 @@ const submit = () => form.post(route('login'), { onFinish: () => form.reset('pas
         <Head title="Iniciar sesión" />
 
         <div class="mb-8">
-            <h2 class="text-3xl font-bold text-slate-800">Bienvenido</h2>
-            <p class="text-slate-500 mt-1 text-sm sm:text-base">Introduce tus credenciales para acceder</p>
+            <h2 class="text-3xl font-bold text-slate-800 dark:text-white">Bienvenido</h2>
+            <p class="text-slate-500 dark:text-zinc-400 mt-1 text-sm sm:text-base">Introduce tus credenciales para acceder</p>
         </div>
 
         <a
             :href="route('auth.google.redirect')"
-            class="mb-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            class="mb-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3 font-semibold text-slate-700 dark:text-zinc-100 shadow-sm transition hover:bg-slate-50 dark:hover:bg-zinc-800"
         >
             <svg class="h-5 w-5" viewBox="0 0 48 48" aria-hidden="true">
                 <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.659 32.657 29.24 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.959 3.041l5.657-5.657C34.046 6.053 29.27 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
@@ -34,20 +34,20 @@ const submit = () => form.post(route('login'), { onFinish: () => form.reset('pas
         </a>
 
         <form @submit.prevent="submit" class="space-y-5">
-            <div v-if="status" class="p-3 bg-green-50 text-green-700 rounded-xl text-sm border border-green-100">{{ status }}</div>
+            <div v-if="status" class="p-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-xl text-sm border border-green-100 dark:border-green-800">{{ status }}</div>
 
             <div>
-                <InputLabel for="email" value="Correo electrónico" class="ml-1 mb-1 text-slate-700 font-semibold" />
-                <TextInput id="email" type="email" v-model="form.email" required autofocus class="w-full !rounded-xl !border-slate-200 focus:!ring-blue-500/20" placeholder="tu@email.com" />
+                <InputLabel for="email" value="Correo electrónico" class="ml-1 mb-1 text-slate-700 dark:text-zinc-300 font-semibold" />
+                <TextInput id="email" type="email" v-model="form.email" required autofocus class="w-full !rounded-xl !border-slate-200 dark:!border-zinc-800 focus:!ring-blue-500/20" placeholder="tu@email.com" />
                 <InputError :message="form.errors.email" />
             </div>
 
             <div>
                 <div class="flex justify-between items-center mb-1">
-                    <InputLabel for="password" value="Contraseña" class="ml-1 text-slate-700 font-semibold" />
-                    <Link v-if="canResetPassword" :href="route('password.request')" class="text-xs text-blue-600 hover:underline">¿Olvidaste la clave?</Link>
+                    <InputLabel for="password" value="Contraseña" class="ml-1 text-slate-700 dark:text-zinc-300 font-semibold" />
+                    <Link v-if="canResetPassword" :href="route('password.request')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">¿Olvidaste la clave?</Link>
                 </div>
-                <TextInput id="password" type="password" v-model="form.password" required class="w-full !rounded-xl !border-slate-200 focus:!ring-blue-500/20" placeholder="••••••••" />
+                <TextInput id="password" type="password" v-model="form.password" required class="w-full !rounded-xl !border-slate-200 dark:!border-zinc-800 focus:!ring-blue-500/20" placeholder="••••••••" />
                 <InputError :message="form.errors.password" />
             </div>
 
@@ -56,7 +56,7 @@ const submit = () => form.post(route('login'), { onFinish: () => form.reset('pas
             </button>
 
             <div class="pt-4 text-center">
-                <p class="text-slate-600 text-sm">¿Aún no tienes cuenta? <Link :href="route('register')" class="text-red-500 font-bold hover:text-red-600">Regístrate gratis</Link></p>
+                <p class="text-slate-600 dark:text-zinc-400 text-sm">¿Aún no tienes cuenta? <Link :href="route('register')" class="text-red-500 font-bold hover:text-red-600">Regístrate gratis</Link></p>
             </div>
         </form>
     </AuthLayout>

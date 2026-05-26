@@ -51,10 +51,10 @@ const userInitials = computed(() =>
 
     <GeneralLayout>
         <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
-            <div class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-                <div class="bg-white">
+            <div class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+                <div class="bg-white dark:bg-zinc-950">
                     <div class="flex flex-col items-center text-center">
-                        <div class="mb-4 flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-neutral-200 bg-indigo-100 text-2xl font-semibold text-indigo-600">
+                        <div class="mb-4 flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-neutral-200 bg-indigo-100 text-2xl font-semibold text-indigo-600 dark:border-zinc-700 dark:bg-indigo-900/30 dark:text-indigo-400">
                             <img
                                 v-if="avatarUrl"
                                 :src="avatarUrl"
@@ -63,33 +63,33 @@ const userInitials = computed(() =>
                             />
                             <span v-else>{{ userInitials }}</span>
                         </div>
-                        <h3 class="text-3xl font-bold text-neutral-900">{{ userProfile.name }}</h3>
-                        <p class="mt-1 text-lg text-neutral-600">{{ userProfile.email }}</p>
+                        <h3 class="text-3xl font-bold text-neutral-900 dark:text-white">{{ userProfile.name }}</h3>
+                        <p class="mt-1 text-lg text-neutral-600 dark:text-zinc-400">{{ userProfile.email }}</p>
                     </div>
 
                     <div class="mt-6 flex flex-wrap justify-center gap-4">
-                        <div class="min-w-[140px] rounded-xl border border-neutral-200 bg-neutral-50 p-3 px-6 text-center shadow-sm">
-                            <p class="text-xs font-medium uppercase tracking-wider text-neutral-500">Rol</p>
-                            <p class="mt-0.5 text-lg font-bold text-neutral-900">
+                        <div class="min-w-[140px] rounded-xl border border-neutral-200 bg-neutral-50 p-3 px-6 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                            <p class="text-xs font-medium uppercase tracking-wider text-neutral-500 dark:text-zinc-500">Rol</p>
+                            <p class="mt-0.5 text-lg font-bold text-neutral-900 dark:text-white">
                                 {{ roleLabel }}
                             </p>
                         </div>
 
-                        <div class="min-w-[140px] rounded-xl border border-neutral-200 bg-neutral-50 p-3 px-6 text-center shadow-sm">
-                            <p class="text-xs font-medium uppercase tracking-wider text-neutral-500">Club</p>
-                            <p class="mt-0.5 text-lg font-bold text-neutral-900">
+                        <div class="min-w-[140px] rounded-xl border border-neutral-200 bg-neutral-50 p-3 px-6 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                            <p class="text-xs font-medium uppercase tracking-wider text-neutral-500 dark:text-zinc-500">Club</p>
+                            <p class="mt-0.5 text-lg font-bold text-neutral-900 dark:text-white">
                                 {{ userProfile.club ?? 'Sin club' }}
                             </p>
                         </div>
                     </div>
                 </div>
-                <div class="mx-auto mt-6 grid w-full max-w-md grid-cols-2 gap-1 rounded-xl border border-neutral-200 bg-neutral-100/80 p-1 shadow-sm">
+                <div class="mx-auto mt-6 grid w-full max-w-md grid-cols-2 gap-1 rounded-xl border border-neutral-200 bg-neutral-100/80 p-1 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <button
                         type="button"
                         class="rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-200"
                         :class="activeTab === 'perfil'
-                            ? 'bg-white text-blue-600 shadow-sm ring-1 ring-neutral-200'
-                            : 'text-neutral-500 hover:text-neutral-700'"
+                            ? 'bg-white text-blue-600 shadow-sm ring-1 ring-neutral-200 dark:bg-zinc-800 dark:text-blue-400 dark:ring-zinc-700'
+                            : 'text-neutral-500 hover:text-neutral-700 dark:text-zinc-400 dark:hover:text-zinc-200'"
                         @click="activeTab = 'perfil'"
                     >
                         Perfil
@@ -98,8 +98,8 @@ const userInitials = computed(() =>
                         type="button"
                         class="rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-200"
                         :class="activeTab === 'ajustes'
-                            ? 'bg-white text-blue-600 shadow-sm ring-1 ring-neutral-200'
-                            : 'text-neutral-500 hover:text-neutral-700'"
+                            ? 'bg-white text-blue-600 shadow-sm ring-1 ring-neutral-200 dark:bg-zinc-800 dark:text-blue-400 dark:ring-zinc-700'
+                            : 'text-neutral-500 hover:text-neutral-700 dark:text-zinc-400 dark:hover:text-zinc-200'"
                         @click="activeTab = 'ajustes'"
                     >
                         Ajustes
@@ -124,17 +124,17 @@ const userInitials = computed(() =>
             </section>
 
             <section v-else class="space-y-6">
-                <div class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+                <div class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                     <Link
                         :href="route('logout')"
                         method="post"
                         as="button"
-                        class="text-xl font-semibold text-red-600 transition hover:text-red-700"
+                        class="text-xl font-semibold text-red-600 transition hover:text-red-700 dark:text-red-500 dark:hover:text-red-400"
                     >
                         Cerrar Sesión
                     </Link>
                 </div>
-                <div id="editar-perfil" class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+                <div id="editar-perfil" class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                     <UpdateProfileInformationForm
                         :must-verify-email="mustVerifyEmail"
                         :status="status"
@@ -142,11 +142,11 @@ const userInitials = computed(() =>
                     />
                 </div>
 
-                <div id="seguridad" class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+                <div id="seguridad" class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                     <UpdatePasswordForm class="max-w-xl" />
                 </div>
 
-                <div id="privacidad" class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+                <div id="privacidad" class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                     <DeleteUserForm class="max-w-xl" />
                 </div>
             </section>
