@@ -24,7 +24,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', recalculateScale));
 </script>
 
 <template>
-    <div class="min-h-[100svh] w-full overflow-x-hidden bg-gradient-to-br from-blue-600 via-blue-500 to-blue-400 flex items-center justify-center p-4 sm:p-8">
+    <div class="min-h-[100svh] w-full overflow-x-hidden bg-gradient-to-br from-blue-600 via-blue-500 to-blue-400 dark:from-blue-950 dark:via-blue-900 dark:to-blue-900 flex items-center justify-center p-4 sm:p-8">
 
         <div ref="layoutRef"
              class="w-full max-w-[1100px] transition-transform duration-300 ease-out"
@@ -49,7 +49,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', recalculateScale));
                     </div>
                 </div>
 
-                <div class="bg-white rounded-[2.5rem] shadow-2xl p-6 sm:p-10 border border-white/20">
+                <div class="bg-white rounded-[2.5rem] shadow-2xl p-6 sm:p-10 border border-white/20 dark:bg-zinc-950 dark:border-zinc-800">
                     <slot />
                 </div>
 

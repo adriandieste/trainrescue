@@ -29,9 +29,9 @@ function statusLabel(status) {
 }
 
 function statusColor(status) {
-    if (status === 'completed') return 'bg-emerald-100 text-emerald-700';
-    if (status === 'pending') return 'bg-rose-100 text-rose-700';
-    return 'bg-blue-100 text-blue-700';
+    if (status === 'completed') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+    if (status === 'pending') return 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400';
+    return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
 }
 
 function markWorkoutCompleted(workoutId) {
@@ -57,53 +57,53 @@ const pastWorkouts = computed(() => {
                 <!-- Flash messages -->
                 <div
                     v-if="flash.success"
-                    class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800 shadow-sm"
+                    class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800 shadow-sm dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400"
                 >
                     {{ flash.success }}
                 </div>
                 <div
                     v-if="flash.error"
-                    class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 shadow-sm"
+                    class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 shadow-sm dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400"
                 >
                     {{ flash.error }}
                 </div>
 
                 <!-- Próximos entrenamientos -->
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                    <div class="border-b border-gray-200 p-6">
-                        <h2 class="text-lg font-semibold text-gray-900">Próximos entrenamientos</h2>
-                        <p class="mt-1 text-sm text-gray-600">Sesiones programadas por tu entrenador. Expande cada sesión para ver el detalle de todos los ejercicios, series, metros y descansos.</p>
+                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:border dark:border-zinc-800 dark:bg-zinc-950">
+                    <div class="border-b border-gray-200 p-6 dark:border-zinc-800">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-zinc-100">Próximos entrenamientos</h2>
+                        <p class="mt-1 text-sm text-gray-600 dark:text-zinc-400">Sesiones programadas por tu entrenador. Expande cada sesión para ver el detalle de todos los ejercicios, series, metros y descansos.</p>
                     </div>
 
-                    <div v-if="upcomingWorkouts.length === 0" class="p-6 text-center text-sm text-gray-500">
+                    <div v-if="upcomingWorkouts.length === 0" class="p-6 text-center text-sm text-gray-500 dark:text-zinc-500">
                         <p>No hay entrenamientos programados próximamente.</p>
                     </div>
 
-                    <div v-else class="divide-y divide-gray-100">
+                    <div v-else class="divide-y divide-gray-100 dark:divide-zinc-800">
                         <div
                             v-for="workout in upcomingWorkouts"
                             :key="workout.id"
-                            class="bg-white"
+                            class="bg-white dark:bg-zinc-950"
                         >
                             <!-- Header del entrenamiento -->
                             <div
                                 role="button"
                                 tabindex="0"
-                                class="flex cursor-pointer items-center justify-between gap-4 p-5 hover:bg-gray-50 transition"
+                                class="flex cursor-pointer items-center justify-between gap-4 p-5 hover:bg-gray-50 transition dark:hover:bg-zinc-900/50"
                                 @click="expandedWorkoutId = expandedWorkoutId === workout.id ? null : workout.id"
                                 @keydown.enter="expandedWorkoutId = expandedWorkoutId === workout.id ? null : workout.id"
                                 @keydown.space="expandedWorkoutId = expandedWorkoutId === workout.id ? null : workout.id"
                             >
                                 <div class="flex-1">
-                                    <h3 class="text-sm font-semibold text-gray-900">{{ workout.title }}</h3>
+                                    <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">{{ workout.title }}</h3>
                                     <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                                        <p class="text-xs font-medium text-blue-600">
+                                        <p class="text-xs font-medium text-blue-600 dark:text-blue-400">
                                             📅 {{ formatDate(workout.workout_date) }}
                                         </p>
                                         <span :class="`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusColor(workout.completion_status)}`">
                                             {{ statusLabel(workout.completion_status) }}
                                         </span>
-                                        <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
+                                        <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700 dark:bg-zinc-800 dark:text-zinc-300">
                                             {{ workout.exercises.length }} {{ workout.exercises.length === 1 ? 'ejercicio' : 'ejercicios' }}
                                         </span>
                                     </div>
@@ -140,16 +140,16 @@ const pastWorkouts = computed(() => {
                                 leave-from-class="opacity-100 translate-y-0"
                                 leave-to-class="opacity-0 -translate-y-2"
                             >
-                                <div v-if="expandedWorkoutId === workout.id" class="border-t border-gray-100 bg-gray-50 p-5">
+                                <div v-if="expandedWorkoutId === workout.id" class="border-t border-gray-100 bg-gray-50 p-5 dark:border-zinc-800 dark:bg-zinc-900/40">
                                     <div class="space-y-3">
                                         <div
                                             v-for="(exercise, index) in workout.exercises"
                                             :key="`${workout.id}-${index}`"
-                                            class="rounded-lg border border-gray-200 bg-white p-4"
+                                            class="rounded-lg border border-gray-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900"
                                         >
                                             <div class="mb-2 flex items-start justify-between gap-3">
                                                 <div>
-                                                    <h4 class="text-sm font-semibold text-gray-900">
+                                                    <h4 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
                                                         {{ index + 1 }}. {{ exercise.name }}
                                                     </h4>
                                                 </div>
@@ -174,9 +174,9 @@ const pastWorkouts = computed(() => {
                                             </div>
 
                                             <!-- Label de carga -->
-                                            <div class="mt-3 rounded border border-gray-200 bg-gray-50 px-3 py-2">
-                                                <p class="text-xs text-gray-600">Resumen de carga</p>
-                                                <p class="text-sm font-semibold text-gray-900">{{ exercise.load_label }}</p>
+                                            <div class="mt-3 rounded border border-gray-200 bg-gray-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800">
+                                                <p class="text-xs text-gray-600 dark:text-zinc-400">Resumen de carga</p>
+                                                <p class="text-sm font-semibold text-gray-900 dark:text-zinc-100">{{ exercise.load_label }}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -187,38 +187,38 @@ const pastWorkouts = computed(() => {
                 </div>
 
                 <!-- Entrenamientos pasados (colapsable) -->
-                <div v-if="pastWorkouts.length > 0" class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                <div v-if="pastWorkouts.length > 0" class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:border dark:border-zinc-800 dark:bg-zinc-950">
                     <details>
-                        <summary class="cursor-pointer border-b border-gray-200 p-6 hover:bg-gray-50 transition">
-                            <span class="text-base font-semibold text-gray-700">Historial de entrenamientos</span>
-                            <span class="ml-2 text-sm text-gray-400">({{ pastWorkouts.length }})</span>
+                        <summary class="cursor-pointer border-b border-gray-200 p-6 hover:bg-gray-50 transition dark:border-zinc-800 dark:hover:bg-zinc-900/50">
+                            <span class="text-base font-semibold text-gray-700 dark:text-zinc-200">Historial de entrenamientos</span>
+                            <span class="ml-2 text-sm text-gray-400 dark:text-zinc-500">({{ pastWorkouts.length }})</span>
                         </summary>
 
-                        <div class="divide-y divide-gray-100">
+                        <div class="divide-y divide-gray-100 dark:divide-zinc-800">
                             <div
                                 v-for="workout in pastWorkouts"
                                 :key="workout.id"
-                                class="bg-white opacity-75"
+                                class="bg-white opacity-75 dark:bg-zinc-950"
                             >
                                 <!-- Header del entrenamiento -->
                                 <div
                                     role="button"
                                     tabindex="0"
-                                    class="flex cursor-pointer items-center justify-between gap-4 p-5 hover:bg-gray-50 transition"
+                                    class="flex cursor-pointer items-center justify-between gap-4 p-5 hover:bg-gray-50 transition dark:hover:bg-zinc-900/50"
                                     @click="expandedWorkoutId = expandedWorkoutId === `past-${workout.id}` ? null : `past-${workout.id}`"
                                     @keydown.enter="expandedWorkoutId = expandedWorkoutId === `past-${workout.id}` ? null : `past-${workout.id}`"
                                     @keydown.space="expandedWorkoutId = expandedWorkoutId === `past-${workout.id}` ? null : `past-${workout.id}`"
                                 >
                                     <div class="flex-1">
-                                        <h3 class="text-sm font-semibold text-gray-900">{{ workout.title }}</h3>
+                                        <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">{{ workout.title }}</h3>
                                         <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                                            <p class="text-xs font-medium text-gray-500">
+                                            <p class="text-xs font-medium text-gray-500 dark:text-zinc-500">
                                                 📅 {{ formatDate(workout.workout_date) }}
                                             </p>
                                             <span :class="`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusColor(workout.completion_status)}`">
                                                 {{ statusLabel(workout.completion_status) }}
                                             </span>
-                                            <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
+                                            <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700 dark:bg-zinc-800 dark:text-zinc-300">
                                                 {{ workout.exercises.length }} ejercicios
                                             </span>
                                         </div>
@@ -245,16 +245,16 @@ const pastWorkouts = computed(() => {
                                     leave-from-class="opacity-100 translate-y-0"
                                     leave-to-class="opacity-0 -translate-y-2"
                                 >
-                                    <div v-if="expandedWorkoutId === `past-${workout.id}`" class="border-t border-gray-100 bg-gray-100/50 p-5">
+                                    <div v-if="expandedWorkoutId === `past-${workout.id}`" class="border-t border-gray-100 bg-gray-100/50 p-5 dark:border-zinc-800 dark:bg-zinc-900/40">
                                         <div class="space-y-3">
                                             <div
                                                 v-for="(exercise, index) in workout.exercises"
                                                 :key="`past-${workout.id}-${index}`"
-                                                class="rounded-lg border border-gray-300 bg-white p-4"
+                                                class="rounded-lg border border-gray-300 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900"
                                             >
                                                 <div class="mb-2 flex items-start justify-between gap-3">
                                                     <div>
-                                                        <h4 class="text-sm font-semibold text-gray-900">
+                                                        <h4 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
                                                             {{ index + 1 }}. {{ exercise.name }}
                                                         </h4>
                                                     </div>
@@ -279,9 +279,9 @@ const pastWorkouts = computed(() => {
                                                 </div>
 
                                                 <!-- Label de carga -->
-                                                <div class="mt-3 rounded border border-gray-300 bg-gray-100 px-3 py-2">
-                                                    <p class="text-xs text-gray-700">Resumen de carga</p>
-                                                    <p class="text-sm font-semibold text-gray-900">{{ exercise.load_label }}</p>
+                                                <div class="mt-3 rounded border border-gray-300 bg-gray-100 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800">
+                                                    <p class="text-xs text-gray-700 dark:text-zinc-400">Resumen de carga</p>
+                                                    <p class="text-sm font-semibold text-gray-900 dark:text-zinc-100">{{ exercise.load_label }}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -293,12 +293,12 @@ const pastWorkouts = computed(() => {
                 </div>
 
                 <!-- Vacío -->
-                <div v-if="entrenamientos.length === 0" class="overflow-hidden bg-white shadow-sm sm:rounded-lg p-12 text-center">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div v-if="entrenamientos.length === 0" class="overflow-hidden bg-white shadow-sm sm:rounded-lg p-12 text-center dark:border dark:border-zinc-800 dark:bg-zinc-950">
+                    <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <h3 class="mt-4 text-lg font-semibold text-gray-900">No tienes entrenamientos asignados</h3>
-                    <p class="mt-1 text-sm text-gray-600">Tu entrenador aún no ha creado entrenamientos para ti.</p>
+                    <h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-zinc-100">No tienes entrenamientos asignados</h3>
+                    <p class="mt-1 text-sm text-gray-600 dark:text-zinc-400">Tu entrenador aún no ha creado entrenamientos para ti.</p>
                 </div>
             </div>
         </div>
