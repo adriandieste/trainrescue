@@ -2,29 +2,25 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Carbon\Carbon;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        $this->call([
-            PredefinedExerciseSeeder::class,
-            PerformanceTestSeeder::class,
-        ]);
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // Generar socorristas del 1 al 5 con sus contraseñas correlativas
+        foreach (range(1, 5) as $index) {
+            User::create([
+                'name' => "Socorrista Test $index",
+                'email' => "socorrista" . $index . "@train-rescue.com",
+                'password' => Hash::make("Socorrista" . $index), 
+                'rol' => 'socorrista',               
+                'club_id' => 1,                       
+                'email_verified_at' => Carbon::now(), 
+            ]);
+        }
     }
 }
