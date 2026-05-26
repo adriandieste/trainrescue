@@ -32,6 +32,21 @@ const props = defineProps({
 const activeTab = ref('perfil');
 const isEntrenador = computed(() => props.userProfile.rol === 'entrenador');
 const roleLabel = computed(() => props.userProfile.role_label ?? (isEntrenador.value ? 'Entrenador' : 'Socorrista'));
+const attendanceRate = computed(() => Number(props.userProfile.attendance_rate ?? 0));
+const completedSessions = computed(() => Number(props.userProfile.attendance_completed_sessions ?? 0));
+const eligibleSessions = computed(() => Number(props.userProfile.attendance_eligible_sessions ?? 0));
+const showAttendanceBadge = computed(() => !isEntrenador.value);
+const attendanceBadgeClass = computed(() => {
+    if (attendanceRate.value >= 80) {
+        return 'border border-green-200 bg-green-50 text-green-700';
+    }
+
+    if (attendanceRate.value >= 50) {
+        return 'border border-yellow-200 bg-yellow-50 text-yellow-700';
+    }
+
+    return 'border border-red-200 bg-red-50 text-red-700';
+});
 
 // Avatar reactivo: se actualiza cuando Inertia actualiza los shared props tras guardar [CA-4]
 const authUser = computed(() => usePage().props.auth.user);
@@ -79,6 +94,20 @@ const userInitials = computed(() =>
                             <p class="text-xs font-medium uppercase tracking-wider text-neutral-500 dark:text-zinc-500">Club</p>
                             <p class="mt-0.5 text-lg font-bold text-neutral-900 dark:text-white">
                                 {{ userProfile.club ?? 'Sin club' }}
+                            </p>
+                        </div>
+
+                        <div
+                            v-if="showAttendanceBadge"
+                            class="min-w-[180px] rounded-xl p-3 px-6 text-center shadow-sm"
+                            :class="attendanceBadgeClass"
+                        >
+                            <p class="text-xs font-medium uppercase tracking-wider opacity-80">Asistencia media</p>
+                            <p class="mt-0.5 text-lg font-bold">
+                                {{ attendanceRate }}%
+                            </p>
+                            <p class="mt-1 text-xs opacity-80">
+                                {{ completedSessions }}/{{ eligibleSessions }} sesiones realizadas
                             </p>
                         </div>
                     </div>
